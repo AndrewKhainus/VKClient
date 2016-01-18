@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">VKClient</string>
+    <string name="login">Sign in</string>
+    <integer name="com_vk_sdk_AppId">5225166</integer>
+
+    <string name="authority">Sign in</string>
+</resources>
