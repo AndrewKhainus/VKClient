@@ -44,14 +44,16 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
     public static void syncImmediately(Context context) {
+        Log.d("sometag", "syncImmediately");
         Bundle bundle = new Bundle();
         bundle.putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
         bundle.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
-        ContentResolver.requestSync(getSyncAccount(context),
+        ContentResolver.requestSync(sAccount,
                 AUTHORITY, bundle);
     }
 
     public static Account getSyncAccount(Context context) {
+        Log.d("sometag", "getSyncAccount");
         // Get an instance of the Android account manager
         AccountManager accountManager =
                 (AccountManager) context.getSystemService(Context.ACCOUNT_SERVICE);
@@ -68,7 +70,8 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
          * If successful, return the Account object, otherwise report an error.
          */
             if (!accountManager.addAccountExplicitly(sAccount, "", null)) {
-                return null;
+                Log.d("sometag", "account already exist");
+
             }
             /*
              * If you don't set android:syncable="true" in
@@ -83,6 +86,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
     private static void onAccountCreated(Account account, Context context) {
+        Log.d("sometag", "onAccountCreated");
         /*
          * Since we've created an account
          */
@@ -100,12 +104,13 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
     public static void configurePeriodicSync(int syncInterval) {
-
+        Log.d("sometag", "configurePeriodicSync");
         ContentResolver.addPeriodicSync(sAccount, AUTHORITY, new Bundle(), syncInterval);
 
     }
 
     public static void initializeSyncAdapter(Context context) {
+        Log.d("sometag", "initializeSyncAdapter");
         getSyncAccount(context);
     }
 
