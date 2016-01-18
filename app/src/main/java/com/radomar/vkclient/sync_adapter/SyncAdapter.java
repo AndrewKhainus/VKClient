@@ -6,15 +6,9 @@ import android.content.AbstractThreadedSyncAdapter;
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.Context;
-import android.content.SyncRequest;
 import android.content.SyncResult;
-import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
-import android.widget.Toast;
-
-import com.radomar.vkclient.R;
-import com.radomar.vkclient.content_provider.NewsContentProvider;
 
 /**
  * Created by Radomar on 15.01.2016
@@ -24,7 +18,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter {
     public static final int SYNC_INTERVAL = 20;
     ContentResolver mContentResolver;
 
-    public static final String AUTHORITY = "com.radomar.vkclient";
+    public static final String AUTHORITY = "com.radomar.vkclient.NewsProvider";
     public static final String ACCOUNT_TYPE = "com.radomar.vkclient";
 
     private static Account sAccount;

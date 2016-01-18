@@ -14,6 +14,8 @@ public class SyncService extends Service {
 
     private static SyncAdapter sSyncAdapter;
 
+    //TODO: add thread safe lock
+
     @Override
     public void onCreate() {
         super.onCreate();

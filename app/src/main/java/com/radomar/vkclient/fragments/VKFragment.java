@@ -1,12 +1,8 @@
 package com.radomar.vkclient.fragments;
 
-import android.accounts.Account;
-import android.accounts.AccountManager;
 import android.app.Activity;
 import android.app.Fragment;
 import android.app.LoaderManager;
-import android.content.ContentResolver;
-import android.content.Context;
 import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
@@ -20,7 +16,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 
-import com.radomar.vkclient.loader.NewsCursorLoader;
 import com.radomar.vkclient.R;
 import com.radomar.vkclient.adapters.NewsRecyclerAdapter;
 import com.radomar.vkclient.content_provider.NewsContentProvider;
@@ -29,6 +24,7 @@ import com.radomar.vkclient.interfaces.APIService;
 import com.radomar.vkclient.interfaces.ActionListener;
 import com.radomar.vkclient.interfaces.GetCallbackInterface;
 import com.radomar.vkclient.interfaces.OnStartAddAndRemoveListener;
+import com.radomar.vkclient.loader.NewsCursorLoader;
 import com.radomar.vkclient.models.ItemModel;
 import com.radomar.vkclient.models.NewsModel;
 import com.radomar.vkclient.sync_adapter.SyncAdapter;
@@ -179,6 +175,7 @@ public class VKFragment extends Fragment implements View.OnClickListener,
                 }
                 break;
             case R.id.btRequest_FK:
+                SyncAdapter.syncImmediately(getActivity());//TODO: remove; just for test
 //                initCursorLoader();
                 break;
         }
