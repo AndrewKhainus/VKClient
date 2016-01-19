@@ -1,8 +1,10 @@
 package com.radomar.vkclient.fragments;
 
+import android.accounts.Account;
 import android.app.Activity;
 import android.app.Fragment;
 import android.app.LoaderManager;
+import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
@@ -47,7 +49,7 @@ public class VKFragment extends Fragment implements View.OnClickListener,
                                                     LoaderManager.LoaderCallbacks<Cursor> {
 
     public static final String TAG = "sometag";
-    private static String baseUrl = "https://api.vk.com/" ;
+
 
     private OnStartAddAndRemoveListener mOnStartAddAndRemoveListener;
     private GetCallbackInterface mGetCallbackInterface;
@@ -72,16 +74,10 @@ public class VKFragment extends Fragment implements View.OnClickListener,
         super.onCreate(savedInstanceState);
         VKSdk.customInitialize(getActivity(), Constants.VK_API_KEY, String.valueOf(Constants.VK_API_KEY));
 
-//        mAccount = CreateSyncAccount(getActivity());
+//        Account account = SyncAdapter.getSyncAccount(getActivity());
 
-//        ContentResolver.addPeriodicSync(
-//                mAccount,
-//                AUTHORITY,
-//                Bundle.EMPTY,
-//                20L);
-//
-//        ContentResolver.setSyncAutomatically(mAccount, AUTHORITY, true);
-
+//        ContentResolver.addPeriodicSync(account, "com.radomar.vkclient.NewsProvider", new Bundle(), 1);
+//        SyncAdapter.syncImmediately(getActivity());
         SyncAdapter.initializeSyncAdapter(getActivity());
     }
 
@@ -100,7 +96,6 @@ public class VKFragment extends Fragment implements View.OnClickListener,
         if (VKSdk.isLoggedIn()) {
             mLoginButton.setText("sign out");
         }
-
 
         return view;
     }
@@ -199,36 +194,36 @@ public class VKFragment extends Fragment implements View.OnClickListener,
         return list;
     }
 
-    private void initRetrofit() {
-        Retrofit client = new Retrofit.Builder()
-                .baseUrl(baseUrl)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
-
-        APIService apiService = client.create(APIService.class);
-        Log.d("sometag", VKSdk.getAccessToken().accessToken);
-        Call<NewsModel> call = apiService.getJSON("post", 5.44 ,VKSdk.getAccessToken().accessToken);
-        call.enqueue(new Callback<NewsModel>() {
-            @Override
-            public void onResponse(Response<NewsModel> response, Retrofit retrofit) {
-
-                Log.d("sometag", "Status Code = " + response.code());
-                Log.d("sometag", response.raw().toString());
-                NewsModel newsModel = response.body();
-
-                Log.d("sometag", "total news = " + newsModel.response.items.size());
-
-                if (response.code() == 200) {
-                    mAdapter.setData(newsModel.response.items);
-                    mAdapter.notifyDataSetChanged();
-                }
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-            }
-        });
-    }
+//    private void initRetrofit() {
+//        Retrofit client = new Retrofit.Builder()
+//                .baseUrl(baseUrl)
+//                .addConverterFactory(GsonConverterFactory.create())
+//                .build();
+//
+//        APIService apiService = client.create(APIService.class);
+//        Log.d("sometag", VKAccessToken.currentToken().accessToken);
+//        Call<NewsModel> call = apiService.getJSON("post", 5.44 , VKAccessToken.currentToken().accessToken);
+//        call.enqueue(new Callback<NewsModel>() {
+//            @Override
+//            public void onResponse(Response<NewsModel> response, Retrofit retrofit) {
+//
+//                Log.d("sometag", "Status Code = " + response.code());
+//                Log.d("sometag", response.raw().toString());
+//                NewsModel newsModel = response.body();
+//
+//                Log.d("sometag", "total news = " + newsModel.response.items.size());
+//
+//                if (response.code() == 200) {
+//                    mAdapter.setData(newsModel.response.items);
+//                    mAdapter.notifyDataSetChanged();
+//                }
+//            }
+//
+//            @Override
+//            public void onFailure(Throwable t) {
+//            }
+//        });
+//    }
 
     @Override
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {

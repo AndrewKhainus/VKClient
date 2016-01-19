@@ -14,13 +14,15 @@ public class SyncService extends Service {
 
     private static SyncAdapter sSyncAdapter;
 
-    //TODO: add thread safe lock
+    private static final Object sSyncAdapterLock = new Object();
 
     @Override
     public void onCreate() {
         super.onCreate();
-        if (sSyncAdapter == null) {
-            sSyncAdapter = new SyncAdapter(getApplicationContext(), true);
+        synchronized (sSyncAdapterLock) {
+            if (sSyncAdapter == null) {
+                sSyncAdapter = new SyncAdapter(getApplicationContext(), true);
+            }
         }
     }
 
