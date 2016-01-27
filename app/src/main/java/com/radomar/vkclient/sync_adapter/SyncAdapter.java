@@ -10,35 +10,19 @@ import android.content.Context;
 import android.content.SyncResult;
 import android.database.Cursor;
 import android.os.Bundle;
-import android.text.TextUtils;
 import android.util.Log;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParseException;
 import com.radomar.vkclient.content_provider.NewsContentProvider;
 import com.radomar.vkclient.global.Constants;
 import com.radomar.vkclient.interfaces.APIService;
 import com.radomar.vkclient.models.AuthorModel;
-import com.radomar.vkclient.models.CustomJsonDeserializer;
+import com.radomar.vkclient.CustomJsonDeserializer;
 import com.radomar.vkclient.models.Model;
 import com.radomar.vkclient.models.NewsModel;
 import com.vk.sdk.VKAccessToken;
 import com.vk.sdk.VKSdk;
-import com.vk.sdk.dialogs.VKCaptchaDialog;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.lang.reflect.Type;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 import retrofit.Call;
 import retrofit.Callback;

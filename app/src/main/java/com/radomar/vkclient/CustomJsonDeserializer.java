@@ -1,4 +1,4 @@
-package com.radomar.vkclient.models;
+package com.radomar.vkclient;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonDeserializationContext;
@@ -6,6 +6,9 @@ import com.google.gson.JsonDeserializer;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParseException;
+import com.radomar.vkclient.models.AuthorModel;
+import com.radomar.vkclient.models.Model;
+import com.radomar.vkclient.models.NewsModel;
 
 
 import java.lang.reflect.Type;
@@ -31,6 +34,7 @@ public class CustomJsonDeserializer implements JsonDeserializer<Model> {
             newsModel.like = newsJsonObject.getAsJsonObject("likes").get("count").getAsInt();
             newsModel.repost = newsJsonObject.getAsJsonObject("reposts").get("count").getAsInt();
 
+//  TODO type "photo" can be not only first position
             JsonArray attachmentsArray = newsJsonObject.getAsJsonArray("attachments");
             if (attachmentsArray != null) {
                 if (attachmentsArray.size() > 0) {

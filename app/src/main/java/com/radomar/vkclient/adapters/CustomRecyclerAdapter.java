@@ -101,6 +101,7 @@ public class CustomRecyclerAdapter extends RecyclerView.Adapter {
             mNewsText.setText(mCursor.getString(mCursor.getColumnIndex(NewsContentProvider.NEWS_TEXT)));
 
 //   Date from unix time
+//   TODO change date style
             Date date = new Date(Long.parseLong(mCursor.getString(mCursor.getColumnIndex(NewsContentProvider.PUBLISH_TIME)))*1000);
             mUnixTime.setText(date.toString());
 
