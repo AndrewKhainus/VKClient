@@ -1,7 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="match_parent"
+    xmlns:fab="http://schemas.android.com/apk/res-auto">
 
     <Button
         android:layout_width="wrap_content"
@@ -18,7 +19,8 @@
         <android.support.v7.widget.RecyclerView
             android:id="@+id/rvList_FK"
             android:layout_width="match_parent"
-            android:layout_height="match_parent" />
+            android:layout_height="match_parent"
+            android:layout_below="@+id/btLogin_FK" />
 
     </android.support.v4.widget.SwipeRefreshLayout>
 
@@ -27,8 +29,27 @@
         android:layout_height="wrap_content"
         android:text="make request"
         android:id="@+id/btRequest_FK"
-        android:layout_above="@+id/srRefresh_FK"
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true" />
+
+    <FrameLayout
+        android:id="@+id/flForFAB_AD"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <com.getbase.floatingactionbutton.FloatingActionsMenu
+            android:id="@+id/fabMenu_AD"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:layout_gravity="right|bottom"
+            android:layout_marginBottom="16dp"
+            android:layout_marginEnd="16dp"
+            android:layout_marginRight="16dp"
+            fab:fab_addButtonColorNormal="@color/fab_menu_normal"
+            fab:fab_addButtonColorPressed="@color/fab_menu_normal">
+
+        </com.getbase.floatingactionbutton.FloatingActionsMenu>
+
+    </FrameLayout>
 
 </RelativeLayout>

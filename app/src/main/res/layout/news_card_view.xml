@@ -9,16 +9,49 @@
     <android.support.v7.widget.CardView
         android:id="@+id/cv"
         android:layout_width="match_parent"
-        android:layout_height="80dp">
+        android:layout_height="wrap_content">
 
         <RelativeLayout
             android:layout_width="match_parent"
             android:layout_height="match_parent">
 
+            <ImageView
+                android:layout_width="50dp"
+                android:layout_height="50dp"
+                android:id="@+id/ivAuthorPhoto_NCV" />
+
+            <TextView
+                android:id="@+id/tvUnixTime_NCV"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/tvAuthorName_NCV"
+                android:layout_centerHorizontal="true" />
+
             <TextView
                 android:id="@+id/tvNewsText_NCV"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content" />
+                android:layout_height="wrap_content"
+                android:layout_below="@+id/ivAuthorPhoto_NCV"
+                android:layout_alignParentLeft="true"
+                android:layout_alignParentStart="true"
+                android:scrollHorizontally="true"
+                android:maxLines="4"
+                android:ellipsize="end" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/tvAuthorName_NCV"
+                android:layout_alignParentTop="true"
+                android:layout_centerHorizontal="true" />
+
+            <ImageView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/ivNewsPhoto_NCV"
+                android:layout_below="@+id/tvNewsText_NCV"
+                android:layout_alignParentLeft="true"
+                android:layout_alignParentStart="true" />
 
         </RelativeLayout>
 

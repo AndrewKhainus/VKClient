@@ -1,16 +1,21 @@
 package com.radomar.vkclient.models;
 
-import com.google.gson.annotations.Expose;
-import com.google.gson.annotations.SerializedName;
 
 /**
  * Created by Radomar on 14.01.2016
  */
 public class NewsModel {
 
-    @SerializedName("response")
-    @Expose
+    public String sourceId;
+    public long date;
+    public String text;
+    public String photoUrl;
 
-    public ResponseModel response;
+//    public String authorName;
+//    public String authorPhotoUrl;
+
+    public int comments;
+    public int like;
+    public int repost;
 
 }

@@ -2,8 +2,10 @@ package com.radomar.vkclient.loader;
 
 import android.content.Context;
 import android.content.CursorLoader;
+import android.database.ContentObserver;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Handler;
 import android.util.Log;
 
 /**
@@ -30,30 +32,27 @@ public class NewsCursorLoader extends CursorLoader {
 
     @Override
     public Cursor loadInBackground() {
-        Log.d("sometag", "loadInBackground");
         mCursor = getContext().getContentResolver().query(mUri, mProjection, mSelection, mSelectionArgs, mSortOrder);
         return mCursor;
     }
 
     @Override
     protected void onStartLoading() {
-        Log.d("sometag", "onStartLoading");
         if (mCursor == null) {
             onForceLoad();
         } else {
+            mCursor.setNotificationUri(getContext().getContentResolver(), mUri);
             deliverResult(mCursor);
         }
     }
 
     @Override
     public void deliverResult(Cursor cursor) {
-        Log.d("sometag", "deliverResult");
         super.deliverResult(cursor);
     }
 
     @Override
     protected void onForceLoad() {
-        Log.d("sometag", "onForceLoad");
         super.onForceLoad();
     }
 }

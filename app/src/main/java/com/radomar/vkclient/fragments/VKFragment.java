@@ -1,84 +1,69 @@
 package com.radomar.vkclient.fragments;
 
-import android.accounts.Account;
-import android.app.Activity;
 import android.app.Fragment;
 import android.app.LoaderManager;
-import android.content.ContentResolver;
 import android.content.Intent;
 import android.content.Loader;
+import android.content.SyncStatusObserver;
+import android.database.ContentObserver;
 import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.annotation.Nullable;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
+import android.widget.ProgressBar;
 
 import com.radomar.vkclient.R;
-import com.radomar.vkclient.adapters.NewsRecyclerAdapter;
+import com.radomar.vkclient.adapters.CustomRecyclerAdapter;
 import com.radomar.vkclient.content_provider.NewsContentProvider;
 import com.radomar.vkclient.global.Constants;
-import com.radomar.vkclient.interfaces.APIService;
-import com.radomar.vkclient.interfaces.ActionListener;
-import com.radomar.vkclient.interfaces.GetCallbackInterface;
-import com.radomar.vkclient.interfaces.OnStartAddAndRemoveListener;
 import com.radomar.vkclient.loader.NewsCursorLoader;
-import com.radomar.vkclient.models.ItemModel;
-import com.radomar.vkclient.models.NewsModel;
 import com.radomar.vkclient.sync_adapter.SyncAdapter;
 import com.vk.sdk.VKAccessToken;
+import com.vk.sdk.VKCallback;
 import com.vk.sdk.VKSdk;
-
-import java.util.ArrayList;
-
-import retrofit.Call;
-import retrofit.Callback;
-import retrofit.GsonConverterFactory;
-import retrofit.Response;
-import retrofit.Retrofit;
+import com.vk.sdk.api.VKError;
 
 /**
  * Created by Radomar on 12.01.2016
  */
 public class VKFragment extends Fragment implements View.OnClickListener,
-                                                    ActionListener,
-                                                    LoaderManager.LoaderCallbacks<Cursor> {
+                                                    VKCallback<VKAccessToken>,
+                                                    LoaderManager.LoaderCallbacks<Cursor>,
+                                                    SwipeRefreshLayout.OnRefreshListener {
 
+//    TODO save in bundle: 1) mIsLoading
     public static final String TAG = "sometag";
 
-
-    private OnStartAddAndRemoveListener mOnStartAddAndRemoveListener;
-    private GetCallbackInterface mGetCallbackInterface;
-
     private RecyclerView mRecyclerView;
-    private NewsRecyclerAdapter mAdapter;
+    private CustomRecyclerAdapter mAdapter;
+    private LinearLayoutManager mLayoutManager;
+    private SwipeRefreshLayout mSwipeRefreshLayout;
+
+    private ContentObserver mContentObserver;
 
     private Button mLoginButton;
     private Button mRequestButton;
 
-    private Cursor mCursor;
-
-    @Override
-    public void onAttach(Activity activity) {
-        super.onAttach(activity);
-        mOnStartAddAndRemoveListener = (OnStartAddAndRemoveListener) activity;
-        mGetCallbackInterface = (GetCallbackInterface) activity;
-    }
+    private boolean mIsLoading = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         VKSdk.customInitialize(getActivity(), Constants.VK_API_KEY, String.valueOf(Constants.VK_API_KEY));
 
-//        Account account = SyncAdapter.getSyncAccount(getActivity());
 
-//        ContentResolver.addPeriodicSync(account, "com.radomar.vkclient.NewsProvider", new Bundle(), 1);
-//        SyncAdapter.syncImmediately(getActivity());
         SyncAdapter.initializeSyncAdapter(getActivity());
+
     }
 
     @Nullable
@@ -88,13 +73,17 @@ public class VKFragment extends Fragment implements View.OnClickListener,
         View view = inflater.inflate(R.layout.fragment_vk, container, false);
 
         findViews(view);
+        mLayoutManager = new LinearLayoutManager(getActivity());
         initRecyclerView(view);
-        initAdapter();
 
+        initAdapter();
         setListener();
 
+//  TODO make something with login button
         if (VKSdk.isLoggedIn()) {
-            mLoginButton.setText("sign out");
+            mLoginButton.setText(getString(R.string.sign_out));
+        } else {
+            mLoginButton.setText(getString(R.string.sign_in));
         }
 
         return view;
@@ -102,37 +91,29 @@ public class VKFragment extends Fragment implements View.OnClickListener,
 
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
-//        initCursorLoader();
     }
 
     @Override
     public void onStart() {
         super.onStart();
-        mOnStartAddAndRemoveListener.onStartAddListener(this);
     }
 
     @Override
     public void onResume() {
         super.onResume();
         initCursorLoader();
+        registerContentObserver();
     }
 
     @Override
     public void onStop() {
         super.onStop();
-        mOnStartAddAndRemoveListener.onStartRemoveListener(this);
-    }
-
-    @Override
-    public void onDetach() {
-        super.onDetach();
-        mOnStartAddAndRemoveListener = null;
-        mGetCallbackInterface = null;
+        unregisterContentObserver();
     }
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (!VKSdk.onActivityResult(requestCode, resultCode, data, mGetCallbackInterface.getTaskLoginCallback())) {
+        if (!VKSdk.onActivityResult(requestCode, resultCode, data, this)) {
             super.onActivityResult(requestCode, resultCode, data);
         }
     }
@@ -140,21 +121,24 @@ public class VKFragment extends Fragment implements View.OnClickListener,
     private void findViews(View view) {
         mLoginButton = (Button) view.findViewById(R.id.btLogin_FK);
         mRequestButton = (Button) view.findViewById(R.id.btRequest_FK);
+        mSwipeRefreshLayout = (SwipeRefreshLayout) view.findViewById(R.id.srRefresh_FK);
     }
 
     private void initRecyclerView(View view) {
         mRecyclerView = (RecyclerView) view.findViewById(R.id.rvList_FK);
-        mRecyclerView.setLayoutManager(new LinearLayoutManager(getActivity()));
+        mRecyclerView.setLayoutManager(mLayoutManager);
+        addOnScrollListener(mRecyclerView);
     }
 
     private void initAdapter() {
-            mAdapter = new NewsRecyclerAdapter(getActivity(), getFakeData());
+            mAdapter = new CustomRecyclerAdapter(getActivity(), null);
             mRecyclerView.setAdapter(mAdapter);
     }
 
     private void setListener() {
         mLoginButton.setOnClickListener(this);
         mRequestButton.setOnClickListener(this);
+        mSwipeRefreshLayout.setOnRefreshListener(this);
     }
 
     @Override
@@ -164,87 +148,100 @@ public class VKFragment extends Fragment implements View.OnClickListener,
                 if (!VKSdk.isLoggedIn()) {
 //                    login with scopes
                     VKSdk.login(this, "wall", "friends");
+                    mLoginButton.setText(getString(R.string.sign_out));
                 } else {
                     VKSdk.logout();
-                    mLoginButton.setText("sign in");
+                    mLoginButton.setText(getString(R.string.sign_in));
                 }
                 break;
             case R.id.btRequest_FK:
-                SyncAdapter.syncImmediately(getActivity());//TODO: remove; just for test
-//                initCursorLoader();
+//                SyncAdapter.syncImmediately();
                 break;
         }
     }
 
     @Override
-    public void doAction(VKAccessToken token) {
-//        begin to work
-        Log.d(TAG, token.toString());
-        Log.d("sometag", "ready");
-    }
-
-    private ArrayList<ItemModel> getFakeData() {
-        ArrayList<ItemModel> list = new ArrayList<>();
-//        for (int i = 0; i < 50; i++ ) {
-//            NewsModel model = new NewsModel();
-//            model.news = String.valueOf(i);
-//            list.add(model);
-//        }
-
-        return list;
-    }
-
-//    private void initRetrofit() {
-//        Retrofit client = new Retrofit.Builder()
-//                .baseUrl(baseUrl)
-//                .addConverterFactory(GsonConverterFactory.create())
-//                .build();
-//
-//        APIService apiService = client.create(APIService.class);
-//        Log.d("sometag", VKAccessToken.currentToken().accessToken);
-//        Call<NewsModel> call = apiService.getJSON("post", 5.44 , VKAccessToken.currentToken().accessToken);
-//        call.enqueue(new Callback<NewsModel>() {
-//            @Override
-//            public void onResponse(Response<NewsModel> response, Retrofit retrofit) {
-//
-//                Log.d("sometag", "Status Code = " + response.code());
-//                Log.d("sometag", response.raw().toString());
-//                NewsModel newsModel = response.body();
-//
-//                Log.d("sometag", "total news = " + newsModel.response.items.size());
-//
-//                if (response.code() == 200) {
-//                    mAdapter.setData(newsModel.response.items);
-//                    mAdapter.notifyDataSetChanged();
-//                }
-//            }
-//
-//            @Override
-//            public void onFailure(Throwable t) {
-//            }
-//        });
-//    }
-
-    @Override
     public Loader<Cursor> onCreateLoader(int id, Bundle args) {
-        Log.d("sometag", "onCreateLoader");
-        return new NewsCursorLoader(getActivity(), NewsContentProvider.NEWS_CONTENT_URI, null, null, null, null);
+        return new NewsCursorLoader(getActivity(),
+                                    NewsContentProvider.NEWS_CONTENT_URI,
+                                    null,
+                                    null,
+                                    null,
+                                    NewsContentProvider.PUBLISH_TIME);
     }
 
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
         Log.d("sometag", "onLoadFinished");
-        mCursor = data;
-
+        mAdapter.setCursor(data);
+        mAdapter.notifyDataSetChanged();
+        mIsLoading = false;
     }
 
     @Override
     public void onLoaderReset(Loader<Cursor> loader) {
-        Log.d("sometag", "onLoaderReset");
     }
 
     private void initCursorLoader() {
         getLoaderManager().initLoader(100, null, this);
+    }
+
+    private void addOnScrollListener(RecyclerView recyclerView) {
+        recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrolled(RecyclerView recyclerView, int dx, int dy) {
+                super.onScrolled(recyclerView, dx, dy);
+
+                int visibleItemCount = mRecyclerView.getChildCount();
+                int totalItemCount = mLayoutManager.getItemCount();
+                int firstVisibleItem = mLayoutManager.findFirstVisibleItemPosition();
+
+                if ((totalItemCount - visibleItemCount) <= firstVisibleItem && !mIsLoading) {
+                    mIsLoading = true;
+                    SyncAdapter.anywaySyncImmediately();
+                }
+            }
+        });
+    }
+
+    private void registerContentObserver() {
+        mContentObserver = new ContentObserver(new Handler()) {
+            @Override
+            public void onChange(boolean selfChange, Uri uri) {
+                super.onChange(selfChange, uri);
+//                TODO forceLoad should not be here.     http://developer.android.com/intl/ru/reference/android/content/AsyncTaskLoader.html
+                getLoaderManager().getLoader(100).forceLoad();
+            }
+        };
+        getActivity().getContentResolver().registerContentObserver(NewsContentProvider.NEWS_CONTENT_URI, true, mContentObserver);
+    }
+
+    private void unregisterContentObserver() {
+        getActivity().getContentResolver().unregisterContentObserver(mContentObserver);
+    }
+
+    @Override
+    public void onResult(VKAccessToken res) {
+        SyncAdapter.initializeSyncAdapter(getActivity());
+    }
+
+    @Override
+    public void onError(VKError error) {
+
+    }
+
+    @Override
+    public void onRefresh() {
+        mSwipeRefreshLayout.setRefreshing(true);
+        mSwipeRefreshLayout.postDelayed(new Runnable() {
+            @Override
+            public void run() {
+                mSwipeRefreshLayout.setRefreshing(false);
+                if(mAdapter != null) {
+                    SyncAdapter.syncBySwipeToRefresh();
+                }
+            }
+        }, 1000);
     }
 
 }
