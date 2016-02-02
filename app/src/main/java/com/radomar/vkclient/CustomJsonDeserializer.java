@@ -10,7 +10,6 @@ import com.radomar.vkclient.models.AuthorModel;
 import com.radomar.vkclient.models.Model;
 import com.radomar.vkclient.models.NewsModel;
 
-
 import java.lang.reflect.Type;
 
 /**
@@ -30,9 +29,18 @@ public class CustomJsonDeserializer implements JsonDeserializer<Model> {
             newsModel.text = newsJsonObject.get("text").getAsString();
             newsModel.sourceId = newsJsonObject.get("source_id").getAsString();
 
+// comments, likes, reposts
             newsModel.comments = newsJsonObject.getAsJsonObject("comments").get("count").getAsInt();
             newsModel.like = newsJsonObject.getAsJsonObject("likes").get("count").getAsInt();
             newsModel.repost = newsJsonObject.getAsJsonObject("reposts").get("count").getAsInt();
+
+//  coordinates
+            JsonObject geoJsonObject = newsJsonObject.getAsJsonObject("geo");
+            if (geoJsonObject != null) {
+                String[] coordinates = geoJsonObject.get("coordinates").getAsString().split(" ");
+                newsModel.latitude = coordinates[0];
+                newsModel.longitude = coordinates[1];
+            }
 
 //  TODO type "photo" can be not only first position
             JsonArray attachmentsArray = newsJsonObject.getAsJsonArray("attachments");

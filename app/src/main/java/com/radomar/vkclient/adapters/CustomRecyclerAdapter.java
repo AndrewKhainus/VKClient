@@ -1,6 +1,7 @@
 package com.radomar.vkclient.adapters;
 
-import android.content.Context;
+import android.app.Activity;
+import android.content.Intent;
 import android.database.Cursor;
 import android.support.annotation.Nullable;
 import android.support.v7.widget.RecyclerView;
@@ -12,6 +13,7 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import com.radomar.vkclient.GoogleMapActivity;
 import com.radomar.vkclient.R;
 import com.radomar.vkclient.content_provider.NewsContentProvider;
 import com.squareup.picasso.Picasso;
@@ -23,14 +25,14 @@ import java.util.Date;
  */
 public class CustomRecyclerAdapter extends RecyclerView.Adapter {
 
-    private Context mContext;
+    private Activity mActivity;
     private Cursor mCursor;
 
     private static final int NEWS_VIEW = 1;
     private static final int PROGRESS_VIEW = 2;
 
-    public CustomRecyclerAdapter(Context context, @Nullable Cursor cursor) {
-        mContext = context;
+    public CustomRecyclerAdapter(Activity activity, @Nullable Cursor cursor) {
+        mActivity = activity;
         mCursor = cursor;
     }
 
@@ -39,10 +41,10 @@ public class CustomRecyclerAdapter extends RecyclerView.Adapter {
         View itemView;
         RecyclerView.ViewHolder vh;
         if (viewType == NEWS_VIEW) {
-            itemView = LayoutInflater.from(mContext).inflate(R.layout.news_card_view, parent, false);
+            itemView = LayoutInflater.from(mActivity).inflate(R.layout.news_card_view, parent, false);
             vh = new CustomViewHolder(itemView);
         } else {
-            itemView = LayoutInflater.from(mContext).inflate(R.layout.progress_card_view, parent, false);
+            itemView = LayoutInflater.from(mActivity).inflate(R.layout.progress_card_view, parent, false);
             vh = new ProgressViewHolder(itemView);
         }
         return vh;
@@ -79,7 +81,7 @@ public class CustomRecyclerAdapter extends RecyclerView.Adapter {
     /**
      View Holder
      */
-    class CustomViewHolder extends RecyclerView.ViewHolder {
+    class CustomViewHolder extends RecyclerView.ViewHolder implements View.OnClickListener {
 
         private TextView mAuthorName;
         private TextView mUnixTime;
@@ -88,10 +90,15 @@ public class CustomRecyclerAdapter extends RecyclerView.Adapter {
         private ImageView mAuthorPhoto;
         private ImageView mNewsPhoto;
 
+        String mLatitude;
+        String mLongitude;
+
+
         public CustomViewHolder(View itemView) {
             super(itemView);
 
             findViews(itemView);
+            itemView.setOnClickListener(this);
         }
 
         public void onBind(int position) {
@@ -102,13 +109,14 @@ public class CustomRecyclerAdapter extends RecyclerView.Adapter {
 
 //   Date from unix time
 //   TODO change date style
+
             Date date = new Date(Long.parseLong(mCursor.getString(mCursor.getColumnIndex(NewsContentProvider.PUBLISH_TIME)))*1000);
             mUnixTime.setText(date.toString());
 
 //   Download image
             String url = mCursor.getString(mCursor.getColumnIndex(NewsContentProvider.IMAGE_URL));
             if (url != null) {
-                Picasso.with(mContext)
+                Picasso.with(mActivity)
                         .load(url)
                         .into(mNewsPhoto);
             }
@@ -117,11 +125,13 @@ public class CustomRecyclerAdapter extends RecyclerView.Adapter {
 
             url = mCursor.getString(mCursor.getColumnIndex(NewsContentProvider.PHOTO_URL));
             if (url != null) {
-                Picasso.with(mContext)
+                Picasso.with(mActivity)
                         .load(url)
                         .into(mAuthorPhoto);
             }
-
+//  Map
+            mLatitude =  mCursor.getString(mCursor.getColumnIndex(NewsContentProvider.LATITUDE));
+            mLongitude =  mCursor.getString(mCursor.getColumnIndex(NewsContentProvider.LONGITUDE));
         }
 
         private void findViews(View view) {
@@ -133,6 +143,18 @@ public class CustomRecyclerAdapter extends RecyclerView.Adapter {
             mNewsPhoto = (ImageView) view.findViewById(R.id.ivNewsPhoto_NCV);
         }
 
+        @Override
+        public void onClick(View v) {
+            Log.d("sometag", "onClick");
+
+            if (mLatitude != null && mLongitude != null) {
+                Log.d("sometag", "start map activity");
+
+                Intent i = new Intent(mActivity, GoogleMapActivity.class);
+                i.putExtra("latitude", mLatitude).putExtra("longitude", mLongitude);
+                mActivity.startActivity(i);
+            }
+        }
     }
 
     class ProgressViewHolder extends RecyclerView.ViewHolder {

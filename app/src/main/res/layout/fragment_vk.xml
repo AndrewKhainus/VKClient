@@ -33,22 +33,18 @@
         android:layout_alignParentEnd="true" />
 
     <FrameLayout
-        android:id="@+id/flForFAB_AD"
+        android:id="@+id/flForFAB_FK"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
 
-        <com.getbase.floatingactionbutton.FloatingActionsMenu
-            android:id="@+id/fabMenu_AD"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:layout_gravity="right|bottom"
-            android:layout_marginBottom="16dp"
-            android:layout_marginEnd="16dp"
-            android:layout_marginRight="16dp"
-            fab:fab_addButtonColorNormal="@color/fab_menu_normal"
-            fab:fab_addButtonColorPressed="@color/fab_menu_normal">
-
-        </com.getbase.floatingactionbutton.FloatingActionsMenu>
+        <com.melnykov.fab.FloatingActionButton
+            android:id="@+id/fab"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="bottom|right"
+            android:layout_margin="16dp"
+            android:src="@drawable/ic_dialog"
+            fab:fab_colorNormal="@color/colorAccent" />
 
     </FrameLayout>
 

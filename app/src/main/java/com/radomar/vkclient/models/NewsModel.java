@@ -11,8 +11,8 @@ public class NewsModel {
     public String text;
     public String photoUrl;
 
-//    public String authorName;
-//    public String authorPhotoUrl;
+    public String latitude;
+    public String longitude;
 
     public int comments;
     public int like;

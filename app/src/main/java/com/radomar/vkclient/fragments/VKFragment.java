@@ -2,9 +2,11 @@ package com.radomar.vkclient.fragments;
 
 import android.app.Fragment;
 import android.app.LoaderManager;
+import android.content.Context;
 import android.content.Intent;
 import android.content.Loader;
-import android.content.SyncStatusObserver;
+import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
 import android.database.ContentObserver;
 import android.database.Cursor;
 import android.net.Uri;
@@ -14,14 +16,14 @@ import android.support.annotation.Nullable;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-import android.widget.ProgressBar;
 
+
+import com.melnykov.fab.FloatingActionButton;
 import com.radomar.vkclient.R;
 import com.radomar.vkclient.adapters.CustomRecyclerAdapter;
 import com.radomar.vkclient.content_provider.NewsContentProvider;
@@ -42,7 +44,8 @@ public class VKFragment extends Fragment implements View.OnClickListener,
                                                     SwipeRefreshLayout.OnRefreshListener {
 
 //    TODO save in bundle: 1) mIsLoading
-    public static final String TAG = "sometag";
+
+    private SharedPreferences mSharedPref;
 
     private RecyclerView mRecyclerView;
     private CustomRecyclerAdapter mAdapter;
@@ -53,6 +56,7 @@ public class VKFragment extends Fragment implements View.OnClickListener,
 
     private Button mLoginButton;
     private Button mRequestButton;
+    private FloatingActionButton fab;
 
     private boolean mIsLoading = false;
 
@@ -78,6 +82,7 @@ public class VKFragment extends Fragment implements View.OnClickListener,
 
         initAdapter();
         setListener();
+        fab.attachToRecyclerView(mRecyclerView);
 
 //  TODO make something with login button
         if (VKSdk.isLoggedIn()) {
@@ -122,6 +127,7 @@ public class VKFragment extends Fragment implements View.OnClickListener,
         mLoginButton = (Button) view.findViewById(R.id.btLogin_FK);
         mRequestButton = (Button) view.findViewById(R.id.btRequest_FK);
         mSwipeRefreshLayout = (SwipeRefreshLayout) view.findViewById(R.id.srRefresh_FK);
+        fab = (FloatingActionButton) view.findViewById(R.id.fab);
     }
 
     private void initRecyclerView(View view) {
@@ -139,6 +145,7 @@ public class VKFragment extends Fragment implements View.OnClickListener,
         mLoginButton.setOnClickListener(this);
         mRequestButton.setOnClickListener(this);
         mSwipeRefreshLayout.setOnRefreshListener(this);
+        fab.setOnClickListener(this);
     }
 
     @Override
@@ -147,7 +154,7 @@ public class VKFragment extends Fragment implements View.OnClickListener,
             case R.id.btLogin_FK:
                 if (!VKSdk.isLoggedIn()) {
 //                    login with scopes
-                    VKSdk.login(this, "wall", "friends");
+                    VKSdk.login(this, "friends", "photos", "wall");
                     mLoginButton.setText(getString(R.string.sign_out));
                 } else {
                     VKSdk.logout();
@@ -155,7 +162,10 @@ public class VKFragment extends Fragment implements View.OnClickListener,
                 }
                 break;
             case R.id.btRequest_FK:
-//                SyncAdapter.syncImmediately();
+
+                break;
+            case R.id.fab:
+                new ShareDialog().show(getFragmentManager(), Constants.TAG_SHARE_DIALOG);
                 break;
         }
     }
@@ -209,7 +219,7 @@ public class VKFragment extends Fragment implements View.OnClickListener,
             @Override
             public void onChange(boolean selfChange, Uri uri) {
                 super.onChange(selfChange, uri);
-//                TODO forceLoad should not be here.     http://developer.android.com/intl/ru/reference/android/content/AsyncTaskLoader.html
+//                TODO forceLoad should not be here. Sometimes crush.     http://developer.android.com/intl/ru/reference/android/content/AsyncTaskLoader.html
                 getLoaderManager().getLoader(100).forceLoad();
             }
         };
@@ -223,6 +233,10 @@ public class VKFragment extends Fragment implements View.OnClickListener,
     @Override
     public void onResult(VKAccessToken res) {
         SyncAdapter.initializeSyncAdapter(getActivity());
+        mSharedPref = getActivity().getSharedPreferences(Constants.PREFERENCES_NAME, Context.MODE_PRIVATE);
+        Editor ed = mSharedPref.edit();
+        ed.putString(Constants.OWNER_ID_KEY, res.userId);
+        ed.apply();
     }
 
     @Override
