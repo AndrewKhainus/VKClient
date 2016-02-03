@@ -11,7 +11,7 @@ import java.lang.reflect.Type;
 /**
  * Created by Radomar on 28.01.2016
  */
-public class UploadServerUrlJsonDeserializer implements JsonDeserializer<UploadServer> {
+public class RetrieveServerUrlDeserializer implements JsonDeserializer<UploadServer> {
 
     @Override
     public UploadServer deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {

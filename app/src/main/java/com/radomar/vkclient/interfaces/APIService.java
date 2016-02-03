@@ -1,5 +1,6 @@
 package com.radomar.vkclient.interfaces;
 
+import com.radomar.vkclient.models.FinalResponse;
 import com.radomar.vkclient.models.Model;
 import com.radomar.vkclient.models.PhotoModel;
 import com.radomar.vkclient.models.SavePhoto;
@@ -7,6 +8,7 @@ import com.radomar.vkclient.models.UploadServer;
 import com.squareup.okhttp.RequestBody;
 
 import retrofit.Call;
+import retrofit.http.Field;
 import retrofit.http.FormUrlEncoded;
 import retrofit.http.GET;
 import retrofit.http.Multipart;
@@ -35,15 +37,6 @@ public interface APIService {
                          @Query("count") int count,
                          @Query("access_token") String token );
 
-    @POST("/method/wall.post")
-    Call<Model> shareQuery(@Query("owner_id") String ownerId,
-                           @Query("friends_only") int friendsOnly,
-                           @Query("message") String message,
-                           @Query("attachments") String attachments,
-                           @Query("lat") String latitude,
-                           @Query("long") String longitude,
-                           @Query("access_token") String token);
-
     @GET("/method/photos.getWallUploadServer")
     Call<UploadServer> getUploadUrl(@Query("access_token") String token);
 
@@ -52,12 +45,22 @@ public interface APIService {
     Call<SavePhoto> uploadPhoto(@Url String url,
                                 @Part("photo\"; filename=\"image.png\" ") RequestBody _file);
 
+    @FormUrlEncoded
     @POST("/method/photos.saveWallPhoto")
     Call<PhotoModel> saveWallPhoto(
-//                                     @Query("user_id") String userId,
-                                     @Query(value = "photo", encoded=true) String photo,
-                                     @Query(value = "server") String server,
-                                     @Query(value = "hash") String hash,
-                                     @Query(value = "access_token") String token);
+                                     @Query("user_id") String userId,
+                                     @Field("photo") String photo,
+                                     @Field("server") String server,
+                                     @Field("hash") String hash,
+                                     @Field("access_token") String token);
 
+
+    @POST("/method/wall.post")
+    Call<FinalResponse> shareQuery(@Query("owner_id") String ownerId,
+                           @Query("friends_only") int friendsOnly,
+                           @Query("message") String message,
+                           @Query("attachments") String attachments,
+                           @Query("lat") String latitude,
+                           @Query("long") String longitude,
+                           @Query("access_token") String token);
 }

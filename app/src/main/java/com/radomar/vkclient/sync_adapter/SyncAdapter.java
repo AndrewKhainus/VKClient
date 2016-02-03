@@ -24,19 +24,13 @@ import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import android.widget.Toast;
 
-import com.google.gson.Gson;
-import com.google.gson.GsonBuilder;
-import com.google.gson.JsonDeserializationContext;
-import com.google.gson.JsonDeserializer;
-import com.google.gson.JsonElement;
-import com.google.gson.JsonParseException;
 import com.radomar.vkclient.R;
-import com.radomar.vkclient.UploadServerUrlJsonDeserializer;
+import com.radomar.vkclient.RestClient;
 import com.radomar.vkclient.content_provider.NewsContentProvider;
 import com.radomar.vkclient.global.Constants;
 import com.radomar.vkclient.interfaces.APIService;
 import com.radomar.vkclient.models.AuthorModel;
-import com.radomar.vkclient.CustomJsonDeserializer;
+import com.radomar.vkclient.models.FinalResponse;
 import com.radomar.vkclient.models.Model;
 import com.radomar.vkclient.models.NewsModel;
 import com.radomar.vkclient.models.PhotoModel;
@@ -48,26 +42,30 @@ import com.vk.sdk.VKAccessToken;
 import com.vk.sdk.VKSdk;
 
 import java.io.File;
-import java.lang.reflect.Type;
 
 import retrofit.Call;
 import retrofit.Callback;
-import retrofit.GsonConverterFactory;
 import retrofit.Response;
 import retrofit.Retrofit;
 
 /**
  * Created by Radomar on 15.01.2016
  */
-public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback<Model>{
+public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback<Model> {
 //TODO refactor code
-    private static final int SYNC_INTERVAL = 3;
+    private static final int SYNC_INTERVAL = 10;
 
     private static String baseUrl = "https://api.vk.com/" ;
 
     private static Account sAccount;
 
     private String mStartFrom;
+
+    private String mMessage;
+    private String mLat;
+    private String mLang;
+    private String photoId;
+    private Uri mUri;
 
     public static final String AUTHORITY = "com.radomar.vkclient.NewsProvider";
     public static final String ACCOUNT_TYPE = "com.radomar.vkclient";
@@ -97,16 +95,18 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
                     downloadLatestNews();
                 }
                 if (actionType.equals("shareData")) {
-                    shareContent(extras.getString("message"),
-                            extras.getString("latitude"),
-                            extras.getString("longitude"));
+                    mMessage = extras.getString("message");
+                    mLat = extras.getString("latitude");
+                    mLang = extras.getString("longitude");
+                    mUri = Uri.parse(extras.getString("image_uri"));
+
+                    shareData();
                 }
             }
 
             actionType = extras.getString("method_name2");
             if (actionType != null) {
                 if (actionType.equals("getJSON")) {
-                    Log.d("sometag", "SYNC PERIODICALY");
                     downloadLatestNews();
                 }
             }
@@ -116,9 +116,9 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
                 if (cursor.moveToFirst()) {
                     do {
 //                        TODO share data from cursor
-                        shareContent(cursor.getString(cursor.getColumnIndex(NewsContentProvider.SHARED_MESSAGE)),
-                                cursor.getString(cursor.getColumnIndex(NewsContentProvider.LATITUDE)),
-                                cursor.getString(cursor.getColumnIndex(NewsContentProvider.LONGITUDE)));
+//                        shareContent(cursor.getString(cursor.getColumnIndex(NewsContentProvider.SHARED_MESSAGE)),
+//                                cursor.getString(cursor.getColumnIndex(NewsContentProvider.LATITUDE)),
+//                                cursor.getString(cursor.getColumnIndex(NewsContentProvider.LONGITUDE)));
 
 //                        getContext().getContentResolver().delete(NewsContentProvider.SHARE_CONTENT_URI,
 //                                NewsContentProvider.ID + "=" + cursor.getPosition(),
@@ -145,43 +145,30 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
     }
 
     private void downloadLatestNews() {
-        Gson gson = new GsonBuilder()
-                .registerTypeAdapter(Model.class, new CustomJsonDeserializer())
-                .create();
 
-        Retrofit client = new Retrofit.Builder()
-                .baseUrl(baseUrl)
-                .addConverterFactory(GsonConverterFactory.create(gson))
-                .build();
-
-        APIService apiService = client.create(APIService.class);
+        APIService apiService = RestClient.getInstance().getAPIService();
         long firstPublishTime = getFirstPublishTime();
         if (firstPublishTime != 0) {
             firstPublishTime += 1;
         }
 
-        Call<Model> call = apiService.newQuery("post", 5.44,
-                firstPublishTime,
-                10,
-                VKAccessToken.currentToken().accessToken);
+        Call<Model> call = apiService.newQuery("post",
+                                                5.44,
+                                                firstPublishTime,
+                                                10,
+                                                VKAccessToken.currentToken().accessToken);
 
         call.enqueue(this);
     }
 
     private void downloadMoreOldNews() {
-        Log.d("sometag", "downloadMoreOldNews");
-        Gson gson = new GsonBuilder()
-                .registerTypeAdapter(Model.class, new CustomJsonDeserializer())
-                .create();
+        APIService apiService = RestClient.getInstance().getAPIService();
 
-        Retrofit client = new Retrofit.Builder()
-                .baseUrl(baseUrl)
-                .addConverterFactory(GsonConverterFactory.create(gson))
-                .build();
-
-        APIService apiService = client.create(APIService.class);
-
-        Call<Model> call = apiService.getOlderNews("post", 5.44, mStartFrom, 10, VKAccessToken.currentToken().accessToken);
+        Call<Model> call = apiService.getOlderNews("post",
+                                                    5.44,
+                                                    mStartFrom,
+                                                    10,
+                                                    VKAccessToken.currentToken().accessToken);
         call.enqueue(this);
     }
 
@@ -202,8 +189,6 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
         configurePeriodicSync();
 
         ContentResolver.setSyncAutomatically(sAccount, AUTHORITY, true);
-//        Log.d("sometag", "end time ------- " + endTime);
-//        Log.d("sometag", "end time ------- " + getStartFrom());
         syncImmediately();
     }
 
@@ -226,6 +211,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
 
     public static void initializeSyncAdapter(Context context) {
         initSyncAccount(context);
+
         onAccountCreated();
     }
 
@@ -334,32 +320,100 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
     public void onFailure(Throwable t) {
     }
 
-    private void shareContent(final String text, final String latitude, final String longitude) {
-        Log.d("sometag", "share content");
+    private void shareData() {
+        if (mUri != null) {
+            retrieveUploadServerUrl();
+        } else {
+            wallPost();
+        }
+    }
 
-        Retrofit client = new Retrofit.Builder()
-                .baseUrl(baseUrl)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
-
-        APIService apiService = client.create(APIService.class);
-        SharedPreferences sPref = getContext().getSharedPreferences(Constants.PREFERENCES_NAME, Context.MODE_PRIVATE);
-        String ownerId = sPref.getString(Constants.OWNER_ID_KEY, "");
-        Call<Model> call = apiService.shareQuery(ownerId, 0, text, null, latitude, longitude, VKAccessToken.currentToken().accessToken );
-        call.enqueue(new Callback<Model>() {
+    private void retrieveUploadServerUrl() {
+        Log.d("sometag", "retrieveUploadServerUrl");
+        APIService apiService = RestClient.getInstance().getAPIService();
+        Call<UploadServer> call = apiService.getUploadUrl(VKAccessToken.currentToken().accessToken);
+        call.enqueue(new Callback<UploadServer>() {
             @Override
-            public void onResponse(Response<Model> response, Retrofit retrofit) {
-                Log.d("sometag", response.raw().toString());
+            public void onResponse(Response<UploadServer> response, Retrofit retrofit) {
                 if (response.code() == 200) {
-                    Toast.makeText(getContext(), "successfully posted", Toast.LENGTH_SHORT).show();
-
-                    createNotification(text, latitude, longitude);
+                    uploadPhoto(response.body());
                 }
             }
 
             @Override
             public void onFailure(Throwable t) {
-//                createNotification(text, latitude, longitude);
+                Log.d("sometag", "onFailure retrieveUploadServerUrl");
+            }
+        });
+    }
+
+    private void uploadPhoto(UploadServer uploadServer) {
+        Log.d("sometag", "uploadPhoto");
+        APIService apiService = RestClient.getInstance().getAPIService();
+        File file = new File(getRealPathFromURI(mUri));
+        RequestBody body = RequestBody.create(MediaType.parse("multipart/form-data"), file);
+
+        Call<SavePhoto> uploadPhotoCall = apiService.uploadPhoto(uploadServer.uploadUrl, body);
+        uploadPhotoCall.enqueue(new Callback<SavePhoto>() {
+            @Override
+            public void onResponse(Response<SavePhoto> response, Retrofit retrofit) {
+                if (response.code() == 200) {
+                    retrievePhotoId(response.body());
+                }
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+
+            }
+        });
+    }
+
+    private void retrievePhotoId(SavePhoto savePhoto) {
+        Log.d("sometag", "retrievePhotoId");
+        APIService apiService = RestClient.getInstance().getAPIService();
+
+        Call<PhotoModel> call = apiService.saveWallPhoto(VKAccessToken.currentToken().userId,
+                savePhoto.photo,
+                savePhoto.server,
+                savePhoto.hash,
+                VKAccessToken.currentToken().accessToken);
+        call.enqueue(new Callback<PhotoModel>() {
+            @Override
+            public void onResponse(Response<PhotoModel> response, Retrofit retrofit) {
+                if (response.code() == 200) {
+                    photoId = response.body().id;
+                    wallPost();
+                }
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                Log.d("sometag", "onFailure retrievePhotoId");
+            }
+        });
+    }
+
+    private void wallPost() {
+        Log.d("sometag", "wallPost");
+        APIService apiService = RestClient.getInstance().getAPIService();
+        Call<FinalResponse> call = apiService.shareQuery(VKAccessToken.currentToken().userId,
+                                                 0,
+                                                 mMessage,
+                                                 photoId,
+                                                 mLat,
+                                                 mLang,
+                                                 VKAccessToken.currentToken().accessToken);
+        call.enqueue(new Callback<FinalResponse>() {
+            @Override
+            public void onResponse(Response<FinalResponse> response, Retrofit retrofit) {
+                Log.d("sometag", "onResponce");
+            }
+
+            @Override
+            public void onFailure(Throwable t) {
+                Log.d("sometag", "onFailure wallPost");
+                createNotification(mMessage, mLat, mLang);
             }
         });
     }
@@ -391,120 +445,21 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
         notificationManager.notify((int) System.currentTimeMillis(), notification);
     }
 
-    public static void syncImmediatelyAndShare(String text, String latitude, String longitude) {
+    public static void syncImmediatelyAndShare(String text, Uri uri, String latitude, String longitude) {
         Log.d("sometag", "syncImmediatelyAndShare");
         Bundle bundle = new Bundle();
         bundle.putString("immediately", "shareData");
         bundle.putString("message", text);
         bundle.putString("latitude", latitude);
         bundle.putString("longitude", longitude);
+        if (uri != null) {
+            bundle.putString("image_uri", uri.toString());
+        }
         bundle.putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
         bundle.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
         ContentResolver.requestSync(sAccount,
                 AUTHORITY, bundle);
     }
-
-    public static void sharePhoto(final String path) {
-
-        Gson gson = new GsonBuilder()
-                .registerTypeAdapter(UploadServer.class, new UploadServerUrlJsonDeserializer())
-//                .registerTypeAdapter(PhotoModel.class, new JsonDeserializer<PhotoModel>() {
-//
-//                    @Override
-//                    public PhotoModel deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-//                        return new Gson().fromJson(json, PhotoModel.class);
-//                    }
-//                })
-                .create();
-
-        Log.d("sometag", path);
-        Retrofit client = new Retrofit.Builder()
-                .baseUrl(baseUrl)
-                .addConverterFactory(GsonConverterFactory.create(gson))
-                .build();
-
-        final APIService apiService = client.create(APIService.class);
-
-        Call<UploadServer> call = apiService.getUploadUrl(VKAccessToken.currentToken().accessToken);
-        call.enqueue(new Callback<UploadServer>() {
-            @Override
-            public void onResponse(Response<UploadServer> response, Retrofit retrofit) {
-                Log.d("sometag", "upload server" + response.raw().toString());
-
-                Uri uploadUrl = Uri.parse(response.body().uploadUrl);
-                Log.d("sometag", uploadUrl.toString());
-
-                File file = new File(path);
-                RequestBody body = RequestBody.create(MediaType.parse("multipart/form-data"), file);
-
-                Call<SavePhoto> savePhotoCall = apiService.uploadPhoto(uploadUrl.toString(), body);
-                savePhotoCall.enqueue(new Callback<SavePhoto>() {
-                    @Override
-                    public void onResponse(Response<SavePhoto> response, Retrofit retrofit) {
-                        Log.d("sometag", "save photo" + response.raw().toString());
-
-                        Log.d("sometag", "photo   " + response.body().photo);
-                        Log.d("sometag", "server   " + response.body().server);
-                        Log.d("sometag", "hash   " + response.body().hash );
-                        method3(response.body());
-                    }
-
-                    @Override
-                    public void onFailure(Throwable t) {
-                        Log.d("sometag", "onFailure2");
-                    }
-                });
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                Log.d("sometag", "onFailure1");
-            }
-        });
-    }
-
-    private static void method3(SavePhoto body) {
-        Gson gson1 = new GsonBuilder()
-                .registerTypeAdapter(PhotoModel.class, new JsonDeserializer<PhotoModel>() {
-
-                    @Override
-                    public PhotoModel deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
-                        PhotoModel photoModel = new PhotoModel();
-
-                        photoModel.id = json.getAsJsonObject().getAsJsonArray("response").get(0).getAsJsonObject().get("id").getAsString();
-                        return photoModel;
-                    }
-                })
-                .create();
-
-        Retrofit client = new Retrofit.Builder()
-                .baseUrl(baseUrl)
-                .addConverterFactory(GsonConverterFactory.create(gson1))
-                .build();
-
-        final APIService apiService = client.create(APIService.class);
-
-        Call<PhotoModel> call = apiService.saveWallPhoto(
-//                                                        VKAccessToken.currentToken().userId,
-                                                        body.photo,
-                                                        body.server,
-                                                        body.hash,
-                                                        VKAccessToken.currentToken().accessToken);
-
-        call.enqueue(new Callback<PhotoModel>() {
-            @Override
-            public void onResponse(Response<PhotoModel> response, Retrofit retrofit) {
-                Log.d("sometag", "PhotoModel " +  response.raw().toString());
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                Log.d("sometag", "onFailure3");
-            }
-        });
-    }
-
-
 
     public boolean isOnline() {
         ConnectivityManager cm = (ConnectivityManager) getContext().getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -512,6 +467,18 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
         return netInfo != null && netInfo.isConnectedOrConnecting();
     }
 
-
+    private String getRealPathFromURI(Uri contentURI) {
+        String result;
+        Cursor cursor = getContext().getContentResolver().query(contentURI, null, null, null, null);
+        if (cursor == null) {
+            result = contentURI.getPath();
+        } else {
+            cursor.moveToFirst();
+            int idx = cursor.getColumnIndex(MediaStore.Images.ImageColumns.DATA);
+            result = cursor.getString(idx);
+            cursor.close();
+        }
+        return result;
+    }
 
 }

@@ -171,12 +171,15 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
     }
 
     private void shareContent() {
-        if (!mEtMessage.getText().toString().equals("")) {
-//            SyncAdapter.syncImmediatelyAndShare(mEtMessage.getText().toString(),
-//                                                String.valueOf(mLatitude),
-//                                                String.valueOf(mLongitude));
+        if ( !(mEtMessage.getText().toString().equals("") && mImageUri == null)) {
+            SyncAdapter.syncImmediatelyAndShare(mEtMessage.getText().toString(),
+                                                mImageUri,
+                                                String.valueOf(mLatitude),
+                                                String.valueOf(mLongitude));
 
-            SyncAdapter.sharePhoto(getRealPathFromURI(mImageUri));
+//            SyncAdapter.sharePhoto(getRealPathFromURI(mImageUri));
+        } else {
+            Log.d("sometag", "no action");
         }
     }
 
@@ -227,17 +230,5 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
         mLongitude = location.getLongitude();
     }
 
-    private String getRealPathFromURI(Uri contentURI) {
-        String result;
-        Cursor cursor = getActivity().getContentResolver().query(contentURI, null, null, null, null);
-        if (cursor == null) {
-            result = contentURI.getPath();
-        } else {
-            cursor.moveToFirst();
-            int idx = cursor.getColumnIndex(MediaStore.Images.ImageColumns.DATA);
-            result = cursor.getString(idx);
-            cursor.close();
-        }
-        return result;
-    }
+
 }

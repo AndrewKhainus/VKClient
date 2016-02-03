@@ -3,6 +3,7 @@ package com.radomar.vkclient;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.net.Uri;
 import android.util.Log;
 
 import com.radomar.vkclient.sync_adapter.SyncAdapter;
@@ -17,6 +18,7 @@ public class MyBroadcastReceiver extends BroadcastReceiver {
         //TODO string constants2
         Log.d("sometag", "onReceive");
         SyncAdapter.syncImmediatelyAndShare(intent.getStringExtra("extra_message"),
+                                            (Uri)intent.getParcelableExtra("extra_uri"),
                                             intent.getStringExtra("extra_latitude"),
                                             intent.getStringExtra("extra_longitude"));
     }
