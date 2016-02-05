@@ -33,5 +33,4 @@ public class MainActivity extends AppCompatActivity {
                 vkFragment, Constants.TAG_FRAGMENT_VK).commit();
     }
 
-
 }

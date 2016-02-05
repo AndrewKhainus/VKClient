@@ -87,6 +87,8 @@ public class CustomRecyclerAdapter extends RecyclerView.Adapter {
         private TextView mAuthorName;
         private TextView mUnixTime;
         private TextView mNewsText;
+        private TextView mLikes;
+        private TextView mComments;
 
         private ImageView mAuthorPhoto;
         private ImageView mNewsPhoto;
@@ -130,12 +132,21 @@ public class CustomRecyclerAdapter extends RecyclerView.Adapter {
 //  Map
             mLatitude =  mCursor.getString(mCursor.getColumnIndex(NewsContentProvider.LATITUDE));
             mLongitude =  mCursor.getString(mCursor.getColumnIndex(NewsContentProvider.LONGITUDE));
+
+//  Likes, Commits
+            mLikes.setText(mCursor.getString(mCursor.getColumnIndex(NewsContentProvider.LIKE)));
+            mComments.setText(mCursor.getString(mCursor.getColumnIndex(NewsContentProvider.COMMENTS)));
+
         }
+
+
 
         private void findViews(View view) {
             mNewsText = (TextView) view.findViewById(R.id.tvNewsText_NCV);
             mUnixTime = (TextView) view.findViewById(R.id.tvUnixTime_NCV);
             mAuthorName = (TextView) view.findViewById(R.id.tvAuthorName_NCV);
+            mLikes = (TextView) view.findViewById(R.id.tvLike_NCV);
+            mComments = (TextView) view.findViewById(R.id.tvComments_NCV);
 
             mAuthorPhoto = (ImageView) view.findViewById(R.id.ivAuthorPhoto_NCV);
             mNewsPhoto = (ImageView) view.findViewById(R.id.ivNewsPhoto_NCV);
