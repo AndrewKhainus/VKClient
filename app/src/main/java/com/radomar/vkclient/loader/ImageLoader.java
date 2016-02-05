@@ -10,6 +10,7 @@ import android.os.Bundle;
 import android.provider.MediaStore;
 
 import com.radomar.vkclient.global.Constants;
+import com.radomar.vkclient.utils.FileUtils;
 
 
 /**
@@ -30,7 +31,7 @@ public class ImageLoader extends AsyncTaskLoader<Bitmap> {
     @Override
     public Bitmap loadInBackground() {
 
-        String pathFromURI = getRealPathFromURI(mUri);
+        String pathFromURI = FileUtils.getInstance().getRealPathFromURI(getContext(), mUri);
 
         mBitmap = decodeSampledBitmapFromImage(pathFromURI, 150, 150);
 
@@ -82,20 +83,6 @@ public class ImageLoader extends AsyncTaskLoader<Bitmap> {
         }
 
         return inSampleSize;
-    }
-
-    private String getRealPathFromURI(Uri contentURI) {
-        String result;
-        Cursor cursor = getContext().getContentResolver().query(contentURI, null, null, null, null);
-        if (cursor == null) {
-            result = contentURI.getPath();
-        } else {
-            cursor.moveToFirst();
-            int idx = cursor.getColumnIndex(MediaStore.Images.ImageColumns.DATA);
-            result = cursor.getString(idx);
-            cursor.close();
-        }
-        return result;
     }
 
 }

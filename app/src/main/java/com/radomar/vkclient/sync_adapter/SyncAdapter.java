@@ -24,6 +24,7 @@ import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
 import com.radomar.vkclient.R;
+import com.radomar.vkclient.utils.FileUtils;
 import com.radomar.vkclient.utils.RestClient;
 import com.radomar.vkclient.content_provider.NewsContentProvider;
 import com.radomar.vkclient.global.Constants;
@@ -289,20 +290,6 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
         notificationManager.notify((int) System.currentTimeMillis(), notification);
     }
 
-    private String getRealPathFromURI(Uri contentURI) {
-        String result;
-        Cursor cursor = getContext().getContentResolver().query(contentURI, null, null, null, null);
-        if (cursor == null) {
-            result = contentURI.getPath();
-        } else {
-            cursor.moveToFirst();
-            int idx = cursor.getColumnIndex(MediaStore.Images.ImageColumns.DATA);
-            result = cursor.getString(idx);
-            cursor.close();
-        }
-        return result;
-    }
-
     private void shareOfflineMessages() {
 
         Cursor cursor = getContext().getContentResolver().query(NewsContentProvider.SHARE_CONTENT_URI, null, null, null, null);
@@ -345,7 +332,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
         Call<UploadServer> call = apiService.getUploadUrl(VKAccessToken.currentToken().accessToken);
         Response<UploadServer> uploadServer = call.execute();
 
-        File file = new File(getRealPathFromURI(uri));
+        File file = new File(FileUtils.getInstance().getRealPathFromURI(getContext(), uri));
         RequestBody body = RequestBody.create(MediaType.parse("multipart/form-data"), file);
 
         Call<SavePhoto> uploadPhotoCall = apiService.uploadPhoto(uploadServer.body().uploadUrl, body);
