@@ -8,7 +8,7 @@ import android.content.Context;
 import android.os.Bundle;
 
 /**
- * Created by Radomar on 15.01.2016
+ * Created by Radomar2 on 15.01.2016
  */
 public class Authenticator extends AbstractAccountAuthenticator {
 
