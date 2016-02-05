@@ -54,7 +54,6 @@ public class VKFragment extends Fragment implements View.OnClickListener,
 
 
         SyncAdapter.initializeSyncAdapter(getActivity());
-
     }
 
     @Nullable
@@ -203,7 +202,6 @@ public class VKFragment extends Fragment implements View.OnClickListener,
 
     @Override
     public void onError(VKError error) {
-
     }
 
     @Override
