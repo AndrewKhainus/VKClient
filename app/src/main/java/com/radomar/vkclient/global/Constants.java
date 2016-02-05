@@ -41,4 +41,15 @@ public final class Constants {
     public static final String KEY_URI = "key_uri";
     public static final String KEY_LAT = "key_lat";
     public static final String KEY_LONG = "key_long";
+
+    public static final String KEY_IMMEDIATELY = "immediately";
+
+    public static final String DIALOG_TAG = "dialog_tag";
+
+    public static final String LONGITUDE = "longitude";
+    public static final String LATITUDE = "latitude";
+    public static final String MESSAGE = "message";
+    public static final String IMAGE_URI = "image_uri";
+
+    public static final String ACTION_SHARE = "com.radomar.vkclient.share_again";
 }

@@ -65,7 +65,7 @@
         </service>
 
         <receiver
-            android:name="com.radomar.vkclient.MyBroadcastReceiver" >
+            android:name="com.radomar.vkclient.receiver.MyBroadcastReceiver" >
             <intent-filter>
                 <action android:name="com.radomar.vkclient.share_again" />
 

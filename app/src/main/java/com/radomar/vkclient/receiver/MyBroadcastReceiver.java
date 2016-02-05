@@ -16,12 +16,11 @@ public class MyBroadcastReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        //TODO string constants2
         Log.d("sometag", "onReceive");
         SyncAdapter.syncImmediately(Constants.SHARE_DATA_PARAM,
-                                    intent.getStringExtra("extra_message"),
-                                    (Uri) intent.getParcelableExtra("extra_uri"),
-                                    intent.getStringExtra("extra_latitude"),
-                                    intent.getStringExtra("extra_longitude"));
+                                    intent.getStringExtra(Constants.EXTRA_MESSAGE),
+                                    (Uri) intent.getParcelableExtra(Constants.EXTRA_URI),
+                                    intent.getStringExtra(Constants.EXTRA_LAT),
+                                    intent.getStringExtra(Constants.EXTRA_LONG));
     }
 }

@@ -41,6 +41,7 @@ import com.vk.sdk.VKAccessToken;
 import com.vk.sdk.VKSdk;
 
 import java.io.File;
+import java.io.IOException;
 
 import retrofit.Call;
 import retrofit.Callback;
@@ -75,7 +76,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
     public void onPerformSync(Account account, Bundle extras, String authority,
                               ContentProviderClient provider, SyncResult syncResult) {
 
-        String actionType = extras.getString("immediately");
+        String actionType = extras.getString(Constants.KEY_IMMEDIATELY);
 
         if (VKSdk.isLoggedIn() && actionType != null) {
             if ((actionType.equals(Constants.GET_NEWS_PARAM) && getStartFrom() == null) || actionType.equals(Constants.DOWNLOAD_ANYWAY_PARAM)) {
@@ -87,11 +88,14 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
             if (actionType.equals(Constants.SHARE_DATA_PARAM)) {
                 Uri uri = null;
                 try {
-                    uri = Uri.parse(extras.getString("image_uri"));
+                    uri = Uri.parse(extras.getString(Constants.IMAGE_URI));
                 } catch (NullPointerException e) {
                     e.printStackTrace();
                 }
-                shareData(extras.getString("message"), uri, extras.getString("latitude"), extras.getString("longitude"));
+                shareData(extras.getString(Constants.MESSAGE),
+                        uri,
+                        extras.getString(Constants.LATITUDE),
+                        extras.getString(Constants.LONGITUDE));
             }
 
             shareOfflineMessages();
@@ -161,7 +165,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
     public static void configurePeriodicSync() {
         Log.d(TAG, "configurePeriodicSync");
         Bundle bundle = new Bundle();
-        bundle.putString("immediately", Constants.SWIPE_REFRESH_PARAM);
+        bundle.putString(Constants.KEY_IMMEDIATELY, Constants.SWIPE_REFRESH_PARAM);
         ContentResolver.addPeriodicSync(sAccount, AUTHORITY, bundle, SYNC_INTERVAL);
     }
 
@@ -172,20 +176,20 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
     }
 
     public static void syncImmediately(String param, @Nullable String text, @Nullable Uri uri, @Nullable String latitude, @Nullable String longitude) {
-        Log.d(TAG, "syncImmediately");
+
         Bundle bundle = new Bundle();
-        bundle.putString("immediately", param);
+        bundle.putString(Constants.KEY_IMMEDIATELY, param);
         if (uri != null) {
-            bundle.putString("image_uri", uri.toString());
+            bundle.putString(Constants.IMAGE_URI, uri.toString());
         }
         if (text != null) {
-            bundle.putString("message", text);
+            bundle.putString(Constants.MESSAGE, text);
         }
         if (latitude != null) {
-            bundle.putString("latitude", latitude);
+            bundle.putString(Constants.LATITUDE, latitude);
         }
         if (longitude != null) {
-            bundle.putString("longitude", latitude);
+            bundle.putString(Constants.LONGITUDE, longitude);
         }
         bundle.putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
         bundle.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
@@ -223,6 +227,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
             values.put(NewsContentProvider.LATITUDE, newsModel.latitude);
             values.put(NewsContentProvider.LONGITUDE, newsModel.longitude);
             Log.d(TAG, "write latitude = " + newsModel.latitude);
+            Log.d(TAG, "write latitude = " + newsModel.longitude);
             getContext().getContentResolver().insert(NewsContentProvider.NEWS_CONTENT_URI, values);
         }
 
@@ -258,110 +263,11 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
         return mSharedPreferences.getString(Constants.START_FROM, null);
     }
 
-    private void shareData(String message, @Nullable Uri uri, String latitude, String longitude) {
-        if (uri != null) {
-            retrieveUploadServerUrl(message, uri, latitude, longitude);
-        } else {
-            wallPost(message, null, latitude, longitude, null);
-        }
-    }
-
-    private void retrieveUploadServerUrl(final String message, final Uri uri, final String latitude, final String longitude) {
-        Log.d(TAG, "retrieveUploadServerUrl");
-        APIService apiService = RestClient.getInstance().getAPIService();
-        Call<UploadServer> call = apiService.getUploadUrl(VKAccessToken.currentToken().accessToken);
-        call.enqueue(new Callback<UploadServer>() {
-            @Override
-            public void onResponse(Response<UploadServer> response, Retrofit retrofit) {
-                if (response.code() == 200) {
-                    uploadPhoto(response.body(), message, uri, latitude, longitude);
-                }
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                Log.d(TAG, "onFailure retrieveUploadServerUrl");
-            }
-        });
-    }
-
-    private void uploadPhoto(UploadServer uploadServer, final String message, final Uri uri, final String latitude, final String longitude ) {
-        Log.d(TAG, "uploadPhoto");
-        APIService apiService = RestClient.getInstance().getAPIService();
-        File file = new File(getRealPathFromURI(uri));
-        RequestBody body = RequestBody.create(MediaType.parse("multipart/form-data"), file);
-
-        Call<SavePhoto> uploadPhotoCall = apiService.uploadPhoto(uploadServer.uploadUrl, body);
-        uploadPhotoCall.enqueue(new Callback<SavePhoto>() {
-            @Override
-            public void onResponse(Response<SavePhoto> response, Retrofit retrofit) {
-                if (response.code() == 200) {
-                    retrievePhotoId(response.body(), message, uri, latitude, longitude);
-                }
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-
-            }
-        });
-    }
-
-    private void retrievePhotoId(SavePhoto savePhoto, final String message, final Uri uri,final String latitude, final String longitude) {
-        Log.d(TAG, "retrievePhotoId");
-        APIService apiService = RestClient.getInstance().getAPIService();
-
-        Call<PhotoModel> call = apiService.saveWallPhoto(VKAccessToken.currentToken().userId,
-                savePhoto.photo,
-                savePhoto.server,
-                savePhoto.hash,
-                VKAccessToken.currentToken().accessToken);
-        call.enqueue(new Callback<PhotoModel>() {
-            @Override
-            public void onResponse(Response<PhotoModel> response, Retrofit retrofit) {
-                if (response.code() == 200) {
-                    wallPost(message, uri, latitude, longitude, response.body().id);
-                }
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                Log.d(TAG, "onFailure retrievePhotoId");
-            }
-        });
-    }
-
-    private void wallPost(final String message, final Uri uri, final String latitude, final String longitude, @Nullable String photoId) {
-        Log.d(TAG, "wallPost");
-        APIService apiService = RestClient.getInstance().getAPIService();
-        Call<FinalResponse> call = apiService.shareQuery(VKAccessToken.currentToken().userId,
-                0,
-                message,
-                photoId,
-                latitude,
-                longitude,
-                VKAccessToken.currentToken().accessToken);
-        call.enqueue(new Callback<FinalResponse>() {
-            @Override
-            public void onResponse(Response<FinalResponse> response, Retrofit retrofit) {
-                Log.d(TAG, response.raw().toString());
-                Log.d(TAG, "onResponce");
-
-            }
-
-            @Override
-            public void onFailure(Throwable t) {
-                Log.d(TAG, "onFailure wallPost");
-                createNotification(message, uri, latitude, longitude);
-            }
-        });
-    }
-
     private void createNotification(String message, Uri uri, String latitude, String longitude) {
         Log.d(TAG, "createNotification");
 
         Intent intent = new Intent();
-        intent.setAction("com.radomar.vkclient.share_again");
+        intent.setAction(Constants.ACTION_SHARE);
         intent.putExtra(Constants.EXTRA_MESSAGE, message);
         intent.putExtra(Constants.EXTRA_URI, uri);
         intent.putExtra(Constants.EXTRA_LAT, latitude);
@@ -399,13 +305,18 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
     }
 
     private void shareOfflineMessages() {
+
         Cursor cursor = getContext().getContentResolver().query(NewsContentProvider.SHARE_CONTENT_URI, null, null, null, null);
         if (cursor != null) {
             if (cursor.moveToFirst()) {
                 do {
-//                    Uri uri = Uri.parse(cursor.getString(cursor.getColumnIndex(NewsContentProvider.SHARED_IMAGE_URL)));
+                    Uri uri = Uri.parse(cursor.getString(cursor.getColumnIndex(NewsContentProvider.SHARED_IMAGE_URL)));
+                    if (uri.toString().equals("")) {
+                        uri = null;
+                    }
+
                     shareData(cursor.getString(cursor.getColumnIndex(NewsContentProvider.SHARED_MESSAGE)),
-                            Uri.parse(cursor.getString(cursor.getColumnIndex(NewsContentProvider.SHARED_IMAGE_URL))),
+                            uri,
                             cursor.getString(cursor.getColumnIndex(NewsContentProvider.LATITUDE)),
                             cursor.getString(cursor.getColumnIndex(NewsContentProvider.LONGITUDE)));
                 } while (cursor.moveToNext());
@@ -415,6 +326,54 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
                     null);
             cursor.close();
         }
+    }
+
+    private void shareData(String message, @Nullable Uri uri, String latitude, String longitude) {
+        try {
+            if (uri != null) {
+                wallPost(message, latitude, longitude, getPhotoId(uri));
+            } else {
+                wallPost(message, latitude, longitude, null);
+            }
+        } catch (IOException e) {
+            createNotification(message, uri, latitude, longitude);
+        }
+    }
+
+    private String getPhotoId(Uri uri) throws IOException {
+        Log.d(TAG, "getPhotoId");
+        APIService apiService = RestClient.getInstance().getAPIService();
+        Call<UploadServer> call = apiService.getUploadUrl(VKAccessToken.currentToken().accessToken);
+        Response<UploadServer> uploadServer = call.execute();
+
+        File file = new File(getRealPathFromURI(uri));
+        RequestBody body = RequestBody.create(MediaType.parse("multipart/form-data"), file);
+
+        Call<SavePhoto> uploadPhotoCall = apiService.uploadPhoto(uploadServer.body().uploadUrl, body);
+        Response<SavePhoto> savePhoto = uploadPhotoCall.execute();
+
+        Call<PhotoModel> savePhotoCall = apiService.saveWallPhoto(VKAccessToken.currentToken().userId,
+                                                                  savePhoto.body().photo,
+                                                                  savePhoto.body().server,
+                                                                  savePhoto.body().hash,
+                                                                  VKAccessToken.currentToken().accessToken);
+        Response<PhotoModel> photoModel = savePhotoCall.execute();
+
+        return photoModel.body().id;
+    }
+
+    private void wallPost(String message, String latitude, String longitude, @Nullable String photoId) throws IOException {
+        Log.d(TAG, "wallPost");
+        APIService apiService = RestClient.getInstance().getAPIService();
+        Call<FinalResponse> call = apiService.shareQuery(VKAccessToken.currentToken().userId,
+                                                         0,
+                                                         message,
+                                                         photoId,
+                                                         latitude,
+                                                         longitude,
+                                                         VKAccessToken.currentToken().accessToken);
+        Response<FinalResponse> wallPostCall = call.execute();
+        Log.d(TAG, wallPostCall.raw().toString());
     }
 
 }

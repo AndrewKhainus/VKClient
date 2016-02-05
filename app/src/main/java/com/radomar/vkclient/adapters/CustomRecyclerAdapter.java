@@ -146,7 +146,7 @@ public class CustomRecyclerAdapter extends RecyclerView.Adapter {
             Log.d("sometag", "onClick");
 
             if (mLatitude != null && mLongitude != null) {
-                Log.d("sometag", "start map activity");
+                Log.d("sometag", "start map activity " + mLatitude + "  " + mLongitude);
 
                 Intent i = new Intent(mActivity, GoogleMapActivity.class);
                 i.putExtra(Constants.KEY_LATITUDE, mLatitude)

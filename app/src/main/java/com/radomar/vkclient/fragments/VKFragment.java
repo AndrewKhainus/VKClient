@@ -1,16 +1,19 @@
 package com.radomar.vkclient.fragments;
 
+import android.app.Activity;
 import android.app.Fragment;
 import android.app.LoaderManager;
 import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -35,6 +38,8 @@ public class VKFragment extends Fragment implements View.OnClickListener,
                                                     VKCallback<VKAccessToken>,
                                                     LoaderManager.LoaderCallbacks<Cursor>,
                                                     SwipeRefreshLayout.OnRefreshListener {
+
+    private static final int DIALOG_REQUEST_CODE = 42;
 
     private RecyclerView mRecyclerView;
     private CustomRecyclerAdapter mAdapter;
@@ -100,8 +105,16 @@ public class VKFragment extends Fragment implements View.OnClickListener,
 
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
+        Log.d("sometag", "onActivityResult");
         if (!VKSdk.onActivityResult(requestCode, resultCode, data, this)) {
             super.onActivityResult(requestCode, resultCode, data);
+        }
+        if (resultCode == Activity.RESULT_OK) {
+            switch (requestCode) {
+                case DIALOG_REQUEST_CODE:
+                    updateUI(data.getBooleanExtra(Constants.DIALOG_TAG, false));
+                    break;
+            }
         }
     }
 
@@ -144,7 +157,9 @@ public class VKFragment extends Fragment implements View.OnClickListener,
                 }
                 break;
             case R.id.fab_FK:
-                new ShareDialog().show(getFragmentManager(), Constants.TAG_SHARE_DIALOG);
+                ShareDialog shareDialog = new ShareDialog();
+                shareDialog.setTargetFragment(this, DIALOG_REQUEST_CODE);
+                shareDialog.show(getFragmentManager(), Constants.TAG_SHARE_DIALOG);
                 break;
             case R.id.btRequest_FK:
 
@@ -216,6 +231,12 @@ public class VKFragment extends Fragment implements View.OnClickListener,
                 }
             }
         }, 1000);
+    }
+
+    private void updateUI(boolean isDataAdded) {
+        if (isDataAdded) {
+//TODO change fab color
+        }
     }
 
 }

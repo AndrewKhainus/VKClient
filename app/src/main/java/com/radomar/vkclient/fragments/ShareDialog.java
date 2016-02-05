@@ -173,7 +173,13 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
                 if (isOnline()) {
                     shareContent();
                 } else {
-                    writeToDb();
+                    if (!(mEtMessage.getText().toString().equals("") && mImageUri == null)) {
+                        writeToDb();
+
+                        Intent intent = new Intent();
+                        intent.putExtra(Constants.DIALOG_TAG, true);
+                        getTargetFragment().onActivityResult(getTargetRequestCode(), Activity.RESULT_OK, intent);
+                    }
                 }
                 dismiss();
                 break;
@@ -261,16 +267,13 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
     }
 
     private void writeToDb() {
-        if (!(mEtMessage.getText().toString().equals("") && mImageUri == null)) {
+        ContentValues values = new ContentValues();
+        values.put(NewsContentProvider.SHARED_IMAGE_URL, mTvSelectedImage.getText().toString());
+        values.put(NewsContentProvider.SHARED_MESSAGE, mEtMessage.getText().toString());
+        values.put(NewsContentProvider.LATITUDE, mLat);
+        values.put(NewsContentProvider.LONGITUDE, mLong);
 
-            ContentValues values = new ContentValues();
-            values.put(NewsContentProvider.SHARED_IMAGE_URL, mTvSelectedImage.getText().toString());
-            values.put(NewsContentProvider.SHARED_MESSAGE, mEtMessage.getText().toString());
-            values.put(NewsContentProvider.LATITUDE, mLat);
-            values.put(NewsContentProvider.LONGITUDE, mLong);
-
-            getActivity().getContentResolver().insert(NewsContentProvider.SHARE_CONTENT_URI, values);
-        }
+        getActivity().getContentResolver().insert(NewsContentProvider.SHARE_CONTENT_URI, values);
     }
 
     private void initImageLoader() {
