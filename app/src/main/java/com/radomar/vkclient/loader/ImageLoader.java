@@ -2,12 +2,10 @@ package com.radomar.vkclient.loader;
 
 import android.content.AsyncTaskLoader;
 import android.content.Context;
-import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.MediaStore;
 
 import com.radomar.vkclient.global.Constants;
 import com.radomar.vkclient.utils.FileUtils;
