@@ -84,7 +84,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:id="@+id/ivCommits_NCV"
-            android:src="@drawable/ic_commits"
+            android:src="@drawable/ic_comment"
             android:layout_alignParentTop="true"
             android:layout_centerHorizontal="true" />
 
