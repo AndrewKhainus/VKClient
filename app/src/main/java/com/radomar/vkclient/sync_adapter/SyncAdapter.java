@@ -53,6 +53,8 @@ import retrofit.Retrofit;
  */
 public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback<Model> {
 
+    public static final String AUTHORITY = "com.radomar.vkclient.NewsProvider";
+    public static final String ACCOUNT_TYPE = "com.radomar.vkclient";
     private static final String TAG = "sometag";
     private static final int SYNC_INTERVAL = 15;
 
@@ -61,9 +63,6 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
     private String mStartFrom;
 
     private SharedPreferences mSharedPreferences;
-
-    public static final String AUTHORITY = "com.radomar.vkclient.NewsProvider";
-    public static final String ACCOUNT_TYPE = "com.radomar.vkclient";
 
     public SyncAdapter(Context context, boolean autoInitialize) {
         super(context, autoInitialize);

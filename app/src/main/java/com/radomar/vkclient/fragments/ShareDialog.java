@@ -45,6 +45,9 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
                                                            GoogleApiClient.OnConnectionFailedListener,
                                                            LocationListener, LoaderCallbacks<Bitmap> {
 
+    private static final int INTERVAL = 1000*10;
+    private static final int FASTEST_INTERVAL = 1000;
+
     private Button mBtCancel;
     private Button mBtShare;
     private Button mBtAddLocation;
@@ -246,8 +249,8 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
     private void initLocationRequest() {
         mLocationRequest = LocationRequest.create()
                 .setPriority(LocationRequest.PRIORITY_HIGH_ACCURACY)
-                .setInterval(10 * 1000)        // 10 seconds, in milliseconds
-                .setFastestInterval(1 * 1000); // 1 second, in milliseconds
+                .setInterval(INTERVAL)
+                .setFastestInterval(FASTEST_INTERVAL);
     }
 
     @Override

@@ -26,8 +26,12 @@ public class GoogleMapActivity extends AppCompatActivity implements OnMapReadyCa
         setContentView(R.layout.google_map_activity);
 
         Bundle extras = getIntent().getExtras();
-        mLatitude = Double.parseDouble(extras.getString(Constants.KEY_LATITUDE));
-        mLongitude = Double.parseDouble(extras.getString(Constants.KEY_LONGITUDE));
+        String lt = extras.getString(Constants.KEY_LATITUDE);
+        String lng = extras.getString(Constants.KEY_LONGITUDE);
+        if (lt != null && lng != null) {
+            mLatitude = Double.parseDouble(lt);
+            mLongitude = Double.parseDouble(lng);
+        }
 
         initMap();
     }

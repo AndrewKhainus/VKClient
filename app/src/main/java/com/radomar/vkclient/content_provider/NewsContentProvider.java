@@ -285,7 +285,6 @@ public class NewsContentProvider extends ContentProvider {
             db.execSQL(CREATE_NEWS_TABLE);
             db.execSQL(CREATE_AUTHORS_TABLE);
             db.execSQL(CREATE_SHARE_TABLE);
-
         }
 
         @Override
