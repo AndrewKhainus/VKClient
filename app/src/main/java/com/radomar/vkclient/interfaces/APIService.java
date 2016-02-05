@@ -25,17 +25,17 @@ public interface APIService {
 
     @GET("/method/newsfeed.get")
     Call<Model> getOlderNews(@Query("filters") String filter,
-                            @Query("v") double version,
-                            @Query("start_from") String startFrom,
-                            @Query("count") int count,
-                            @Query("access_token") String token );
+                             @Query("v") double version,
+                             @Query("start_from") String startFrom,
+                             @Query("count") int count,
+                             @Query("access_token") String token);
 
     @GET("/method/newsfeed.get")
     Call<Model> newQuery(@Query("filters") String filter,
                          @Query("v") double version,
                          @Query("start_time") long startTime,
                          @Query("count") int count,
-                         @Query("access_token") String token );
+                         @Query("access_token") String token);
 
     @GET("/method/photos.getWallUploadServer")
     Call<UploadServer> getUploadUrl(@Query("access_token") String token);
@@ -48,19 +48,19 @@ public interface APIService {
     @FormUrlEncoded
     @POST("/method/photos.saveWallPhoto")
     Call<PhotoModel> saveWallPhoto(
-                                     @Query("user_id") String userId,
-                                     @Field("photo") String photo,
-                                     @Field("server") String server,
-                                     @Field("hash") String hash,
-                                     @Field("access_token") String token);
+            @Query("user_id") String userId,
+            @Field("photo") String photo,
+            @Field("server") String server,
+            @Field("hash") String hash,
+            @Field("access_token") String token);
 
 
     @POST("/method/wall.post")
     Call<FinalResponse> shareQuery(@Query("owner_id") String ownerId,
-                           @Query("friends_only") int friendsOnly,
-                           @Query("message") String message,
-                           @Query("attachments") String attachments,
-                           @Query("lat") String latitude,
-                           @Query("long") String longitude,
-                           @Query("access_token") String token);
+                                   @Query("friends_only") int friendsOnly,
+                                   @Query("message") String message,
+                                   @Query("attachments") String attachments,
+                                   @Query("lat") String latitude,
+                                   @Query("long") String longitude,
+                                   @Query("access_token") String token);
 }

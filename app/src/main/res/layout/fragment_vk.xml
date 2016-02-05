@@ -1,8 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
-    android:layout_height="match_parent"
-    xmlns:fab="http://schemas.android.com/apk/res-auto">
+    android:layout_height="match_parent">
 
     <Button
         android:layout_width="wrap_content"
@@ -32,20 +31,17 @@
         android:layout_alignParentRight="true"
         android:layout_alignParentEnd="true" />
 
-    <FrameLayout
-        android:id="@+id/flForFAB_FK"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent">
-
-        <com.melnykov.fab.FloatingActionButton
-            android:id="@+id/fab"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_gravity="bottom|right"
-            android:layout_margin="16dp"
-            android:src="@drawable/ic_dialog"
-            fab:fab_colorNormal="@color/colorAccent" />
-
-    </FrameLayout>
+    <android.support.design.widget.FloatingActionButton
+        android:id="@+id/fab_FK"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:src="@android:drawable/ic_dialog_email"
+        android:layout_alignParentBottom="true"
+        android:layout_alignRight="@+id/btRequest_FK"
+        android:layout_alignEnd="@+id/btRequest_FK"
+        android:layout_marginRight="30dp"
+        android:layout_marginEnd="30dp"
+        android:layout_marginBottom="30dp" />
 
 </RelativeLayout>

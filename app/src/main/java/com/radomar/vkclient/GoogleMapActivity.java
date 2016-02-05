@@ -9,6 +9,7 @@ import com.google.android.gms.maps.MapFragment;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
+import com.radomar.vkclient.global.Constants;
 
 /**
  * Created by Radomar on 29.01.2016
@@ -25,8 +26,8 @@ public class GoogleMapActivity extends AppCompatActivity implements OnMapReadyCa
         setContentView(R.layout.google_map_activity);
 
         Bundle extras = getIntent().getExtras();
-        mLatitude = Double.parseDouble(extras.getString("latitude"));
-        mLongitude = Double.parseDouble(extras.getString("longitude"));
+        mLatitude = Double.parseDouble(extras.getString(Constants.KEY_LATITUDE));
+        mLongitude = Double.parseDouble(extras.getString(Constants.KEY_LONGITUDE));
 
         initMap();
     }

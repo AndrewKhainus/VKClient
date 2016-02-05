@@ -13,19 +13,18 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.content.SharedPreferences.Editor;
 import android.content.SyncResult;
 import android.database.Cursor;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
+import android.support.annotation.Nullable;
 import android.support.v4.app.NotificationCompat;
 import android.util.Log;
-import android.widget.Toast;
 
 import com.radomar.vkclient.R;
-import com.radomar.vkclient.RestClient;
+import com.radomar.vkclient.utils.RestClient;
 import com.radomar.vkclient.content_provider.NewsContentProvider;
 import com.radomar.vkclient.global.Constants;
 import com.radomar.vkclient.interfaces.APIService;
@@ -52,20 +51,15 @@ import retrofit.Retrofit;
  * Created by Radomar on 15.01.2016
  */
 public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback<Model> {
-//TODO refactor code
-    private static final int SYNC_INTERVAL = 10;
 
-    private static String baseUrl = "https://api.vk.com/" ;
+    private static final String TAG = "sometag";
+    private static final int SYNC_INTERVAL = 15;
 
     private static Account sAccount;
 
     private String mStartFrom;
 
-    private String mMessage;
-    private String mLat;
-    private String mLang;
-    private String photoId;
-    private Uri mUri;
+    private SharedPreferences mSharedPreferences;
 
     public static final String AUTHORITY = "com.radomar.vkclient.NewsProvider";
     public static final String ACCOUNT_TYPE = "com.radomar.vkclient";
@@ -82,66 +76,39 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
                               ContentProviderClient provider, SyncResult syncResult) {
 
         String actionType = extras.getString("immediately");
-        if (VKSdk.isLoggedIn() && isOnline()) {
-            if (actionType != null) {
-                if (actionType.equals("getNews") && getStartFrom() == null) {
-                    Log.d("sometag", "SYNC IMMEDIATELY");
-                    downloadMoreOldNews();
-                }
-                if (actionType.equals("downloadAnyway")) {
-                    downloadMoreOldNews();
-                }
-                if (actionType.equals("swipeToRefresh")) {
-                    downloadLatestNews();
-                }
-                if (actionType.equals("shareData")) {
-                    mMessage = extras.getString("message");
-                    mLat = extras.getString("latitude");
-                    mLang = extras.getString("longitude");
-                    mUri = Uri.parse(extras.getString("image_uri"));
 
-                    shareData();
+        if (VKSdk.isLoggedIn() && actionType != null) {
+            if ((actionType.equals(Constants.GET_NEWS_PARAM) && getStartFrom() == null) || actionType.equals(Constants.DOWNLOAD_ANYWAY_PARAM)) {
+                downloadMoreOldNews();
+            }
+            if (actionType.equals(Constants.SWIPE_REFRESH_PARAM)) {
+                downloadLatestNews();
+            }
+            if (actionType.equals(Constants.SHARE_DATA_PARAM)) {
+                Uri uri = null;
+                try {
+                    uri = Uri.parse(extras.getString("image_uri"));
+                } catch (NullPointerException e) {
+                    e.printStackTrace();
                 }
+                shareData(extras.getString("message"), uri, extras.getString("latitude"), extras.getString("longitude"));
             }
 
-            actionType = extras.getString("method_name2");
-            if (actionType != null) {
-                if (actionType.equals("getJSON")) {
-                    downloadLatestNews();
-                }
-            }
-
-            Cursor cursor = getContext().getContentResolver().query(NewsContentProvider.SHARE_CONTENT_URI, null, null, null, null);
-            if (cursor != null) {
-                if (cursor.moveToFirst()) {
-                    do {
-//                        TODO share data from cursor
-//                        shareContent(cursor.getString(cursor.getColumnIndex(NewsContentProvider.SHARED_MESSAGE)),
-//                                cursor.getString(cursor.getColumnIndex(NewsContentProvider.LATITUDE)),
-//                                cursor.getString(cursor.getColumnIndex(NewsContentProvider.LONGITUDE)));
-
-//                        getContext().getContentResolver().delete(NewsContentProvider.SHARE_CONTENT_URI,
-//                                NewsContentProvider.ID + "=" + cursor.getPosition(),
-//                                null);
-                    } while (cursor.moveToNext());
-                }
-                cursor.close();
-
-            }
-
+            shareOfflineMessages();
         }
+    }
 
-        if (VKSdk.isLoggedIn() && !isOnline()) {
-            if (actionType != null && actionType.equals("shareData")) {
-                ContentValues values = new ContentValues();
-//                values.put(NewsContentProvider.SHARED_IMAGE_URL, extras.getString(""));
-                values.put(NewsContentProvider.SHARED_MESSAGE, extras.getString("message"));
-                values.put(NewsContentProvider.LATITUDE, extras.getString("latitude"));
-                values.put(NewsContentProvider.LONGITUDE, extras.getString("longitude"));
-
-                getContext().getContentResolver().insert(NewsContentProvider.SHARE_CONTENT_URI, values);
-            }
+    @Override
+    public void onResponse(Response<Model> response, Retrofit retrofit) {
+        Model model = response.body();
+        Log.d(TAG, response.raw().toString());
+        if (response.code() == 200) {
+            writeDataToDB(model);
         }
+    }
+
+    @Override
+    public void onFailure(Throwable t) {
     }
 
     private void downloadLatestNews() {
@@ -153,10 +120,10 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
         }
 
         Call<Model> call = apiService.newQuery("post",
-                                                5.44,
-                                                firstPublishTime,
-                                                10,
-                                                VKAccessToken.currentToken().accessToken);
+                Constants.VERSION,
+                firstPublishTime,
+                Constants.COUNT,
+                VKAccessToken.currentToken().accessToken);
 
         call.enqueue(this);
     }
@@ -165,48 +132,37 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
         APIService apiService = RestClient.getInstance().getAPIService();
 
         Call<Model> call = apiService.getOlderNews("post",
-                                                    5.44,
-                                                    mStartFrom,
-                                                    10,
-                                                    VKAccessToken.currentToken().accessToken);
+                Constants.VERSION,
+                mStartFrom,
+                Constants.COUNT,
+                VKAccessToken.currentToken().accessToken);
         call.enqueue(this);
     }
 
     public static void initSyncAccount(Context context) {
         AccountManager accountManager = (AccountManager) context.getSystemService(Context.ACCOUNT_SERVICE);
         Account account = new Account("dummyaccount", ACCOUNT_TYPE);
-        // If the password doesn't exist, the account doesn't exist
+
         if ( null == accountManager.getPassword(account) ) {
             if (!accountManager.addAccountExplicitly(account, "", null)) {
-                Log.d("sometag", "account already exist");
+                Log.d(TAG, "account already exist");
             }
         }
         sAccount = account;
     }
 
     private static void onAccountCreated() {
-        Log.d("sometag", "onAccountCreated");
         configurePeriodicSync();
 
         ContentResolver.setSyncAutomatically(sAccount, AUTHORITY, true);
-        syncImmediately();
+        syncImmediately(Constants.GET_NEWS_PARAM, null, null, null, null);
     }
 
     public static void configurePeriodicSync() {
-        Log.d("sometag", "configurePeriodicSync");
+        Log.d(TAG, "configurePeriodicSync");
         Bundle bundle = new Bundle();
-        bundle.putString("method_name2", "getJSON");
+        bundle.putString("immediately", Constants.SWIPE_REFRESH_PARAM);
         ContentResolver.addPeriodicSync(sAccount, AUTHORITY, bundle, SYNC_INTERVAL);
-    }
-
-    public static void syncImmediately() {
-        Log.d("sometag", "syncImmediately");
-        Bundle bundle = new Bundle();
-        bundle.putString("immediately", "getNews");
-        bundle.putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
-        bundle.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
-        ContentResolver.requestSync(sAccount,
-                AUTHORITY, bundle);
     }
 
     public static void initializeSyncAdapter(Context context) {
@@ -215,20 +171,22 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
         onAccountCreated();
     }
 
-    public static void anywaySyncImmediately() {
-        Log.d("sometag", "syncImmediately");
+    public static void syncImmediately(String param, @Nullable String text, @Nullable Uri uri, @Nullable String latitude, @Nullable String longitude) {
+        Log.d(TAG, "syncImmediately");
         Bundle bundle = new Bundle();
-        bundle.putString("immediately", "downloadAnyway");
-        bundle.putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
-        bundle.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
-        ContentResolver.requestSync(sAccount,
-                AUTHORITY, bundle);
-    }
-
-    public static void syncBySwipeToRefresh() {
-        Log.d("sometag", "syncImmediately");
-        Bundle bundle = new Bundle();
-        bundle.putString("immediately", "swipeToRefresh");
+        bundle.putString("immediately", param);
+        if (uri != null) {
+            bundle.putString("image_uri", uri.toString());
+        }
+        if (text != null) {
+            bundle.putString("message", text);
+        }
+        if (latitude != null) {
+            bundle.putString("latitude", latitude);
+        }
+        if (longitude != null) {
+            bundle.putString("longitude", latitude);
+        }
         bundle.putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
         bundle.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
         ContentResolver.requestSync(sAccount,
@@ -249,7 +207,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
     }
 
     private void writeDataToDB(Model data) {
-        Log.d("sometag", "write to DB");
+        Log.d(TAG, "write to DB");
 
 //  write to NEWS table
         for (NewsModel newsModel: data.newsList) {
@@ -264,7 +222,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
             values.put(NewsContentProvider.IMAGE_URL, newsModel.photoUrl);
             values.put(NewsContentProvider.LATITUDE, newsModel.latitude);
             values.put(NewsContentProvider.LONGITUDE, newsModel.longitude);
-            Log.d("sometag", "write latitude = " + newsModel.latitude);
+            Log.d(TAG, "write latitude = " + newsModel.latitude);
             getContext().getContentResolver().insert(NewsContentProvider.NEWS_CONTENT_URI, values);
         }
 
@@ -278,79 +236,59 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
                     values.put(NewsContentProvider.AUTHOR_NAME, authorModel.name);
                     values.put(NewsContentProvider.PHOTO_URL, authorModel.photoUrl);
                     getContext().getContentResolver().insert(NewsContentProvider.AUTHORS_CONTENT_URI, values);
-                    Log.d("sometag", "write author");
+                    Log.d(TAG, "write author");
                 }
                 c.close();
             }
         }
 
-//  write to START_FROM table
+//  write to shared preferences
         if (data.startFrom != null) {
-            ContentValues values = new ContentValues();
-            values.put(NewsContentProvider.START_FROM, data.startFrom);
-            getContext().getContentResolver().insert(NewsContentProvider.START_FROM_CONTENT_URI, values);
+            mSharedPreferences = getContext().getSharedPreferences(Constants.PREFERENCES_NAME, Context.MODE_PRIVATE);
+            Editor ed = mSharedPreferences.edit();
+            ed.putString(Constants.START_FROM, data.startFrom);
+            ed.apply();
             mStartFrom = data.startFrom;
         }
 
     }
 
     private String getStartFrom() {
-        String[] projection = {NewsContentProvider.START_FROM};
-        String startFrom = null;
-        Cursor cursor = getContext().getContentResolver().query(NewsContentProvider.START_FROM_CONTENT_URI, projection, null, null, null);
-        if (cursor != null) {
-            if (cursor.moveToLast()) {
-                startFrom = cursor.getString(cursor.getColumnIndex(NewsContentProvider.START_FROM));
-            }
-            cursor.close();
-        }
-        return startFrom;
+        mSharedPreferences = getContext().getSharedPreferences(Constants.PREFERENCES_NAME, Context.MODE_PRIVATE);
+        return mSharedPreferences.getString(Constants.START_FROM, null);
     }
 
-    @Override
-    public void onResponse(Response<Model> response, Retrofit retrofit) {
-        Model model = response.body();
-        Log.d("sometag", response.raw().toString());
-        if (response.code() == 200) {
-            writeDataToDB(model);
-        }
-    }
-
-    @Override
-    public void onFailure(Throwable t) {
-    }
-
-    private void shareData() {
-        if (mUri != null) {
-            retrieveUploadServerUrl();
+    private void shareData(String message, @Nullable Uri uri, String latitude, String longitude) {
+        if (uri != null) {
+            retrieveUploadServerUrl(message, uri, latitude, longitude);
         } else {
-            wallPost();
+            wallPost(message, null, latitude, longitude, null);
         }
     }
 
-    private void retrieveUploadServerUrl() {
-        Log.d("sometag", "retrieveUploadServerUrl");
+    private void retrieveUploadServerUrl(final String message, final Uri uri, final String latitude, final String longitude) {
+        Log.d(TAG, "retrieveUploadServerUrl");
         APIService apiService = RestClient.getInstance().getAPIService();
         Call<UploadServer> call = apiService.getUploadUrl(VKAccessToken.currentToken().accessToken);
         call.enqueue(new Callback<UploadServer>() {
             @Override
             public void onResponse(Response<UploadServer> response, Retrofit retrofit) {
                 if (response.code() == 200) {
-                    uploadPhoto(response.body());
+                    uploadPhoto(response.body(), message, uri, latitude, longitude);
                 }
             }
 
             @Override
             public void onFailure(Throwable t) {
-                Log.d("sometag", "onFailure retrieveUploadServerUrl");
+                Log.d(TAG, "onFailure retrieveUploadServerUrl");
             }
         });
     }
 
-    private void uploadPhoto(UploadServer uploadServer) {
-        Log.d("sometag", "uploadPhoto");
+    private void uploadPhoto(UploadServer uploadServer, final String message, final Uri uri, final String latitude, final String longitude ) {
+        Log.d(TAG, "uploadPhoto");
         APIService apiService = RestClient.getInstance().getAPIService();
-        File file = new File(getRealPathFromURI(mUri));
+        File file = new File(getRealPathFromURI(uri));
         RequestBody body = RequestBody.create(MediaType.parse("multipart/form-data"), file);
 
         Call<SavePhoto> uploadPhotoCall = apiService.uploadPhoto(uploadServer.uploadUrl, body);
@@ -358,7 +296,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
             @Override
             public void onResponse(Response<SavePhoto> response, Retrofit retrofit) {
                 if (response.code() == 200) {
-                    retrievePhotoId(response.body());
+                    retrievePhotoId(response.body(), message, uri, latitude, longitude);
                 }
             }
 
@@ -369,8 +307,8 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
         });
     }
 
-    private void retrievePhotoId(SavePhoto savePhoto) {
-        Log.d("sometag", "retrievePhotoId");
+    private void retrievePhotoId(SavePhoto savePhoto, final String message, final Uri uri,final String latitude, final String longitude) {
+        Log.d(TAG, "retrievePhotoId");
         APIService apiService = RestClient.getInstance().getAPIService();
 
         Call<PhotoModel> call = apiService.saveWallPhoto(VKAccessToken.currentToken().userId,
@@ -382,53 +320,54 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
             @Override
             public void onResponse(Response<PhotoModel> response, Retrofit retrofit) {
                 if (response.code() == 200) {
-                    photoId = response.body().id;
-                    wallPost();
+                    wallPost(message, uri, latitude, longitude, response.body().id);
                 }
             }
 
             @Override
             public void onFailure(Throwable t) {
-                Log.d("sometag", "onFailure retrievePhotoId");
+                Log.d(TAG, "onFailure retrievePhotoId");
             }
         });
     }
 
-    private void wallPost() {
-        Log.d("sometag", "wallPost");
+    private void wallPost(final String message, final Uri uri, final String latitude, final String longitude, @Nullable String photoId) {
+        Log.d(TAG, "wallPost");
         APIService apiService = RestClient.getInstance().getAPIService();
         Call<FinalResponse> call = apiService.shareQuery(VKAccessToken.currentToken().userId,
-                                                 0,
-                                                 mMessage,
-                                                 photoId,
-                                                 mLat,
-                                                 mLang,
-                                                 VKAccessToken.currentToken().accessToken);
+                0,
+                message,
+                photoId,
+                latitude,
+                longitude,
+                VKAccessToken.currentToken().accessToken);
         call.enqueue(new Callback<FinalResponse>() {
             @Override
             public void onResponse(Response<FinalResponse> response, Retrofit retrofit) {
-                Log.d("sometag", "onResponce");
+                Log.d(TAG, response.raw().toString());
+                Log.d(TAG, "onResponce");
+
             }
 
             @Override
             public void onFailure(Throwable t) {
-                Log.d("sometag", "onFailure wallPost");
-                createNotification(mMessage, mLat, mLang);
+                Log.d(TAG, "onFailure wallPost");
+                createNotification(message, uri, latitude, longitude);
             }
         });
     }
 
-    private void createNotification(String message, String latitude, String longitude) {
-        Log.d("sometag", "createNotification");
+    private void createNotification(String message, Uri uri, String latitude, String longitude) {
+        Log.d(TAG, "createNotification");
 
         Intent intent = new Intent();
         intent.setAction("com.radomar.vkclient.share_again");
-        intent.putExtra("extra_message", message);
-        intent.putExtra("extra_latitude", latitude);
-        intent.putExtra("extra_longitude", longitude);
-//TODO string constants
+        intent.putExtra(Constants.EXTRA_MESSAGE, message);
+        intent.putExtra(Constants.EXTRA_URI, uri);
+        intent.putExtra(Constants.EXTRA_LAT, latitude);
+        intent.putExtra(Constants.EXTRA_LONG, longitude);
 
-        PendingIntent contentIntent = PendingIntent.getBroadcast(getContext(), 0, intent, 0);
+        PendingIntent contentIntent = PendingIntent.getBroadcast(getContext(), (int)System.currentTimeMillis(), intent, 0);
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(getContext());
         builder.
@@ -445,28 +384,6 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
         notificationManager.notify((int) System.currentTimeMillis(), notification);
     }
 
-    public static void syncImmediatelyAndShare(String text, Uri uri, String latitude, String longitude) {
-        Log.d("sometag", "syncImmediatelyAndShare");
-        Bundle bundle = new Bundle();
-        bundle.putString("immediately", "shareData");
-        bundle.putString("message", text);
-        bundle.putString("latitude", latitude);
-        bundle.putString("longitude", longitude);
-        if (uri != null) {
-            bundle.putString("image_uri", uri.toString());
-        }
-        bundle.putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
-        bundle.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
-        ContentResolver.requestSync(sAccount,
-                AUTHORITY, bundle);
-    }
-
-    public boolean isOnline() {
-        ConnectivityManager cm = (ConnectivityManager) getContext().getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo netInfo = cm.getActiveNetworkInfo();
-        return netInfo != null && netInfo.isConnectedOrConnecting();
-    }
-
     private String getRealPathFromURI(Uri contentURI) {
         String result;
         Cursor cursor = getContext().getContentResolver().query(contentURI, null, null, null, null);
@@ -479,6 +396,25 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
             cursor.close();
         }
         return result;
+    }
+
+    private void shareOfflineMessages() {
+        Cursor cursor = getContext().getContentResolver().query(NewsContentProvider.SHARE_CONTENT_URI, null, null, null, null);
+        if (cursor != null) {
+            if (cursor.moveToFirst()) {
+                do {
+//                    Uri uri = Uri.parse(cursor.getString(cursor.getColumnIndex(NewsContentProvider.SHARED_IMAGE_URL)));
+                    shareData(cursor.getString(cursor.getColumnIndex(NewsContentProvider.SHARED_MESSAGE)),
+                            Uri.parse(cursor.getString(cursor.getColumnIndex(NewsContentProvider.SHARED_IMAGE_URL))),
+                            cursor.getString(cursor.getColumnIndex(NewsContentProvider.LATITUDE)),
+                            cursor.getString(cursor.getColumnIndex(NewsContentProvider.LONGITUDE)));
+                } while (cursor.moveToNext());
+            }
+            getContext().getContentResolver().delete(NewsContentProvider.SHARE_CONTENT_URI,
+                    null,
+                    null);
+            cursor.close();
+        }
     }
 
 }

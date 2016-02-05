@@ -16,8 +16,6 @@ public class MainActivity extends AppCompatActivity {
 
 
         startVKFragment();
-
-//        checkGPS();
     }
 
     @Override
@@ -36,37 +34,6 @@ public class MainActivity extends AppCompatActivity {
         getFragmentManager().beginTransaction().replace(R.id.container_AM,
                 vkFragment, Constants.TAG_FRAGMENT_VK).commit();
     }
-
-//    private void checkGPS() {
-//        if (mLocationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)){
-//            Toast.makeText(this, "GPS is Enabled", Toast.LENGTH_SHORT).show();
-//        }else{
-//            showGPSDisabledAlertToUser();
-//        }
-//    }
-
-//    private void showGPSDisabledAlertToUser(){
-//        AlertDialog.Builder alertDialogBuilder = new AlertDialog.Builder(this);
-//        alertDialogBuilder.setMessage("GPS is disabled in your device. Would you like to enable it?")
-//                .setCancelable(false)
-//                .setPositiveButton("Goto Settings Page To Enable GPS",
-//                        new DialogInterface.OnClickListener(){
-//                            public void onClick(DialogInterface dialog, int id){
-//                                Intent callGPSSettingIntent = new Intent(
-//                                        android.provider.Settings.ACTION_LOCATION_SOURCE_SETTINGS);
-//                                startActivity(callGPSSettingIntent);
-//                            }
-//                        });
-//        alertDialogBuilder.setNegativeButton("Cancel",
-//                new DialogInterface.OnClickListener(){
-//                    public void onClick(DialogInterface dialog, int id){
-//                        dialog.cancel();
-//                    }
-//                });
-//        AlertDialog alert = alertDialogBuilder.create();
-//        alert.show();
-//    }
-
 
 
 }

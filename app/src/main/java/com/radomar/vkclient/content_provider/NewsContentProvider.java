@@ -19,17 +19,15 @@ public class NewsContentProvider extends ContentProvider {
 
     public static final String AUTHORITY = "com.radomar.vkclient.NewsProvider";
 
-    static final String DB_NAME = "mydb29";
+    static final String DB_NAME = "mydb41";
     static final int DB_VERSION = 1;
 
     static final String NEWS_TABLE = "news";
     static final String AUTHORS_TABLE = "authors";
-    static final String START_FROM_TABLE = "start_from";
     static final String SHARE_CONTENT_TABLE = "share";
 
     public static final String NEWS_ID = "_id";
     public static final String NEWS_TEXT = "text";
-
 
     public static final String PUBLISH_TIME = "publish_time";
     public static final String LIKE = "likes";
@@ -42,13 +40,10 @@ public class NewsContentProvider extends ContentProvider {
     public static final String AUTHOR_NAME = "author_name";
     public static final String PHOTO_URL = "photo_url";
 
-    public static final String START_FROM = "start_from";
-
     public static final String SHARED_IMAGE_URL = "shared_image_url";
     public static final String SHARED_MESSAGE = "shared_mesage";
     public static final String LATITUDE = "latitude";
     public static final String LONGITUDE = "longitude";
-
 
     static final String CREATE_NEWS_TABLE = "create table " + NEWS_TABLE + "("
             + ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
@@ -59,17 +54,11 @@ public class NewsContentProvider extends ContentProvider {
             + LATITUDE + " TEXT, "
             + LONGITUDE + " TEXT" + ");";
 
-
     static final String CREATE_AUTHORS_TABLE = "create table " + AUTHORS_TABLE + "("
             + ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
             + SOURCE_ID + " TEXT, "
             + AUTHOR_NAME + " TEXT, "
             + PHOTO_URL + " TEXT" + ");";
-
-    static final String CREATE_START_FROM_TABLE = "create table " + START_FROM_TABLE + "("
-            + ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
-            + START_FROM + " TEXT" + ");";
-
 
     static final String CREATE_SHARE_TABLE = "create table " + SHARE_CONTENT_TABLE + "("
             + ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
@@ -81,17 +70,13 @@ public class NewsContentProvider extends ContentProvider {
     // path
     static final String NEWS_PATH = "news";
     static final String AUTHORS_PATH = "authors";
-    static final String START_FROM_PATH = "start_from";
-    static final String SHARE_PATH = "share_path";
+    static final String SHARE_PATH = "share";
 
     public static final Uri NEWS_CONTENT_URI = Uri.parse("content://"
             + AUTHORITY + "/" + NEWS_PATH);
 
     public static final Uri AUTHORS_CONTENT_URI = Uri.parse("content://"
             + AUTHORITY + "/" + AUTHORS_PATH);
-
-    public static final Uri START_FROM_CONTENT_URI = Uri.parse("content://"
-            + AUTHORITY + "/" + START_FROM_PATH);
 
     public static final Uri SHARE_CONTENT_URI = Uri.parse("content://"
             + AUTHORITY + "/" + SHARE_PATH);
@@ -106,13 +91,9 @@ public class NewsContentProvider extends ContentProvider {
 
     static final int URI_AUTHORS_ID = 4;
 
-    static final int URI_START_FROM = 5;
+    static final int URI_SHARE = 5;
 
-    static final int URI_START_FROM_ID = 6;
-
-    static final int URI_SHARE = 7;
-
-    static final int URI_SHARE_ID = 8;
+    static final int URI_SHARE_ID = 6;
 
     // описание и создание UriMatcher
     private static final UriMatcher uriMatcher;
@@ -122,8 +103,6 @@ public class NewsContentProvider extends ContentProvider {
         uriMatcher.addURI(AUTHORITY, NEWS_PATH + "/#", URI_NEWS_ID);
         uriMatcher.addURI(AUTHORITY, AUTHORS_PATH, URI_AUTHORS);
         uriMatcher.addURI(AUTHORITY, AUTHORS_PATH + "/#", URI_AUTHORS_ID);
-        uriMatcher.addURI(AUTHORITY, START_FROM_PATH, URI_START_FROM);
-        uriMatcher.addURI(AUTHORITY, START_FROM_PATH + "/#", URI_START_FROM_ID);
         uriMatcher.addURI(AUTHORITY, SHARE_PATH, URI_SHARE);
         uriMatcher.addURI(AUTHORITY, SHARE_PATH + "/#", URI_SHARE_ID);
     }
@@ -167,18 +146,6 @@ public class NewsContentProvider extends ContentProvider {
                         AUTHORS_CONTENT_URI);
                 return cursor;
 
-            case URI_START_FROM:
-                if (TextUtils.isEmpty(sortOrder)) {
-                    sortOrder = ID + " ASC";
-                }
-                db = dbHelper.getWritableDatabase();
-                cursor = db.query(START_FROM_TABLE, projection, selection,
-                        selectionArgs, null, null, sortOrder);
-
-                cursor.setNotificationUri(getContext().getContentResolver(),
-                        START_FROM_CONTENT_URI);
-                return cursor;
-
             case URI_SHARE:
                 if (TextUtils.isEmpty(sortOrder)) {
                     sortOrder = ID + " ASC";
@@ -213,10 +180,6 @@ public class NewsContentProvider extends ContentProvider {
             case URI_AUTHORS:
                 rowID = db.insert(AUTHORS_TABLE, null, values);
                 resultUri = ContentUris.withAppendedId(AUTHORS_CONTENT_URI, rowID);
-                break;
-            case URI_START_FROM:
-                rowID = db.insert(START_FROM_TABLE, null, values);
-                resultUri = ContentUris.withAppendedId(START_FROM_CONTENT_URI, rowID);
                 break;
             case URI_SHARE:
                 rowID = db.insert(SHARE_CONTENT_TABLE, null, values);
@@ -267,6 +230,9 @@ public class NewsContentProvider extends ContentProvider {
 
                 cnt = db.delete(SHARE_CONTENT_TABLE, selection, selectionArgs);
                 break;
+            case URI_SHARE:
+                cnt = db.delete(SHARE_CONTENT_TABLE, selection, selectionArgs);
+                break;
             default:
                 throw new IllegalArgumentException("Wrong URI: " + uri);
         }
@@ -299,14 +265,6 @@ public class NewsContentProvider extends ContentProvider {
                 }
                 cnt = db.update(AUTHORS_TABLE, values, selection, selectionArgs);
                 break;
-            case URI_START_FROM:
-                if (TextUtils.isEmpty(selection)) {
-                    selection = ID + " = " + id;
-                } else {
-                    selection = selection + " AND " + ID + " = " + id;
-                }
-                cnt = db.update(START_FROM_TABLE, values, selection, selectionArgs);
-                break;
 
             default:
                 throw new IllegalArgumentException("Wrong URI: " + uri);
@@ -326,7 +284,6 @@ public class NewsContentProvider extends ContentProvider {
         public void onCreate(SQLiteDatabase db) {
             db.execSQL(CREATE_NEWS_TABLE);
             db.execSQL(CREATE_AUTHORS_TABLE);
-            db.execSQL(CREATE_START_FROM_TABLE);
             db.execSQL(CREATE_SHARE_TABLE);
 
         }

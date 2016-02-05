@@ -1,7 +1,10 @@
-package com.radomar.vkclient;
+package com.radomar.vkclient.utils;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.radomar.vkclient.deserializers.CustomJsonDeserializer;
+import com.radomar.vkclient.deserializers.RetrieveServerUrlDeserializer;
+import com.radomar.vkclient.deserializers.RetrivePhotoIdDeserializer;
 import com.radomar.vkclient.interfaces.APIService;
 import com.radomar.vkclient.models.Model;
 import com.radomar.vkclient.models.PhotoModel;
@@ -16,7 +19,7 @@ import retrofit.Retrofit;
 public class RestClient {
 
     private static RestClient mInstance;
-    private static final String BASE_URL = "https://api.vk.com/method/";
+    private static final String BASE_URL = "https://api.vk.com/";
     private APIService mAPIService;
 
     public static RestClient getInstance() {

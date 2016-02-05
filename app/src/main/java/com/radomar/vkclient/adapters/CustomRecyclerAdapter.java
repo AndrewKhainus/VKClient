@@ -16,6 +16,7 @@ import android.widget.TextView;
 import com.radomar.vkclient.GoogleMapActivity;
 import com.radomar.vkclient.R;
 import com.radomar.vkclient.content_provider.NewsContentProvider;
+import com.radomar.vkclient.global.Constants;
 import com.squareup.picasso.Picasso;
 
 import java.util.Date;
@@ -103,13 +104,10 @@ public class CustomRecyclerAdapter extends RecyclerView.Adapter {
 
         public void onBind(int position) {
             mCursor.moveToPosition(position);
-            Log.d(getClass().getSimpleName(), "Position: " + position+". Cursor position = " + mCursor.getPosition());
 //   Set text
             mNewsText.setText(mCursor.getString(mCursor.getColumnIndex(NewsContentProvider.NEWS_TEXT)));
 
 //   Date from unix time
-//   TODO change date style
-
             Date date = new Date(Long.parseLong(mCursor.getString(mCursor.getColumnIndex(NewsContentProvider.PUBLISH_TIME)))*1000);
             mUnixTime.setText(date.toString());
 
@@ -151,7 +149,9 @@ public class CustomRecyclerAdapter extends RecyclerView.Adapter {
                 Log.d("sometag", "start map activity");
 
                 Intent i = new Intent(mActivity, GoogleMapActivity.class);
-                i.putExtra("latitude", mLatitude).putExtra("longitude", mLongitude);
+                i.putExtra(Constants.KEY_LATITUDE, mLatitude)
+                        .putExtra(Constants.KEY_LONGITUDE, mLongitude);
+
                 mActivity.startActivity(i);
             }
         }

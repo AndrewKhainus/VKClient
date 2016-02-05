@@ -3,16 +3,20 @@ package com.radomar.vkclient.fragments;
 import android.Manifest;
 import android.app.Activity;
 import android.app.DialogFragment;
+import android.content.ContentValues;
+import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.database.Cursor;
+import android.content.Loader;
+import android.graphics.Bitmap;
 import android.location.Location;
+import android.net.ConnectivityManager;
+import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.MediaStore;
 import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
-import android.telecom.Connection;
+import android.app.LoaderManager.LoaderCallbacks;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -28,7 +32,9 @@ import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.radomar.vkclient.R;
+import com.radomar.vkclient.content_provider.NewsContentProvider;
 import com.radomar.vkclient.global.Constants;
+import com.radomar.vkclient.loader.ImageLoader;
 import com.radomar.vkclient.sync_adapter.SyncAdapter;
 
 /**
@@ -37,20 +43,24 @@ import com.radomar.vkclient.sync_adapter.SyncAdapter;
 public class ShareDialog extends DialogFragment implements View.OnClickListener,
                                                            GoogleApiClient.ConnectionCallbacks,
                                                            GoogleApiClient.OnConnectionFailedListener,
-                                                           LocationListener{
+                                                           LocationListener, LoaderCallbacks<Bitmap> {
 
     private Button mBtCancel;
     private Button mBtShare;
     private Button mBtAddLocation;
 
     private EditText mEtMessage;
-    private ImageView mIvImage;
+    private ImageView mIvSelectedImage;
     private Uri mImageUri;
     private TextView mTvSelectedImage;
     private TextView mTvLocation;
 
+    private Bundle mLoaderBundle;
+
     private double mLatitude;
     private double mLongitude;
+    private String mLat;
+    private String mLong;
 
     private GoogleApiClient mGoogleApiClient;
 
@@ -77,6 +87,12 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
     }
 
     @Override
+    public void onViewCreated(View view, Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+        initImageLoader();
+    }
+
+    @Override
     public void onStart() {
         super.onStart();
         mGoogleApiClient.connect();
@@ -95,13 +111,13 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
     public void onViewStateRestored(Bundle savedInstanceState) {
         super.onViewStateRestored(savedInstanceState);
         if (savedInstanceState != null) {
-            mImageUri = savedInstanceState.getParcelable("key");
+            mImageUri = savedInstanceState.getParcelable(Constants.KEY_URI);
             if (mImageUri != null) {
                 mTvSelectedImage.setText(mImageUri.toString());
             }
 
-            mLatitude = savedInstanceState.getDouble("latitude");
-            mLongitude = savedInstanceState.getDouble("longitude");
+            mLatitude = savedInstanceState.getDouble(Constants.KEY_LAT);
+            mLongitude = savedInstanceState.getDouble(Constants.KEY_LONG);
             mTvLocation.setText(String.format("%f\n%f", mLatitude, mLongitude));
         }
     }
@@ -113,6 +129,8 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
         if (requestCode == Constants.PICK_IMAGE && resultCode == Activity.RESULT_OK && data != null && data.getData() != null) {
             mImageUri = data.getData();
             mTvSelectedImage.setText(mImageUri.toString());
+
+            restartImageLoader();
         }
     }
 
@@ -120,11 +138,11 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         if (mImageUri != null) {
-            outState.putParcelable("key", mImageUri);
+            outState.putParcelable(Constants.KEY_URI, mImageUri);
         }
         if (mTvLocation != null) {
-            outState.putDouble("latitude", mLatitude);
-            outState.putDouble("longitude", mLongitude);
+            outState.putDouble(Constants.KEY_LAT, mLatitude);
+            outState.putDouble(Constants.KEY_LONG, mLongitude);
         }
     }
 
@@ -133,7 +151,7 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
         mBtCancel = (Button) view.findViewById(R.id.btCancel_DF);
         mBtShare = (Button) view.findViewById(R.id.btShare_DF);
         mEtMessage = (EditText) view.findViewById(R.id.etMessage_DF);
-        mIvImage = (ImageView) view.findViewById(R.id.ivImage_DF);
+        mIvSelectedImage = (ImageView) view.findViewById(R.id.ivImage_DF);
         mTvSelectedImage = (TextView) view.findViewById(R.id.tvSelectedImage_DF);
         mTvLocation = (TextView) view.findViewById(R.id.tvLocation_DF);
     }
@@ -142,7 +160,7 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
         mBtAddLocation.setOnClickListener(this);
         mBtCancel.setOnClickListener(this);
         mBtShare.setOnClickListener(this);
-        mIvImage.setOnClickListener(this);
+        mIvSelectedImage.setOnClickListener(this);
     }
 
     @Override
@@ -152,14 +170,20 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
                 dismiss();
                 break;
             case R.id.btShare_DF:
-                shareContent();
+                if (isOnline()) {
+                    shareContent();
+                } else {
+                    writeToDb();
+                }
                 dismiss();
                 break;
             case R.id.ivImage_DF:
                 addImage();
                 break;
             case R.id.btLocation_DF:
-                mTvLocation.setText(String.format("%f\n%f", mLatitude, mLongitude));
+                mLat = String.valueOf(mLatitude);
+                mLong = String.valueOf(mLongitude);
+                mTvLocation.setText(String.format("%s\n%s", mLat, mLong));
                 break;
         }
     }
@@ -171,13 +195,13 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
     }
 
     private void shareContent() {
-        if ( !(mEtMessage.getText().toString().equals("") && mImageUri == null)) {
-            SyncAdapter.syncImmediatelyAndShare(mEtMessage.getText().toString(),
-                                                mImageUri,
-                                                String.valueOf(mLatitude),
-                                                String.valueOf(mLongitude));
+        if (!(mEtMessage.getText().toString().equals("") && mImageUri == null)) {
+            SyncAdapter.syncImmediately(Constants.SHARE_DATA_PARAM,
+                    mEtMessage.getText().toString(),
+                    mImageUri,
+                    mLat,
+                    mLong);
 
-//            SyncAdapter.sharePhoto(getRealPathFromURI(mImageUri));
         } else {
             Log.d("sometag", "no action");
         }
@@ -230,5 +254,58 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
         mLongitude = location.getLongitude();
     }
 
+    private boolean isOnline() {
+        ConnectivityManager cm = (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
+        NetworkInfo netInfo = cm.getActiveNetworkInfo();
+        return netInfo != null && netInfo.isConnectedOrConnecting();
+    }
 
+    private void writeToDb() {
+        if (!(mEtMessage.getText().toString().equals("") && mImageUri == null)) {
+
+            ContentValues values = new ContentValues();
+            values.put(NewsContentProvider.SHARED_IMAGE_URL, mTvSelectedImage.getText().toString());
+            values.put(NewsContentProvider.SHARED_MESSAGE, mEtMessage.getText().toString());
+            values.put(NewsContentProvider.LATITUDE, mLat);
+            values.put(NewsContentProvider.LONGITUDE, mLong);
+
+            getActivity().getContentResolver().insert(NewsContentProvider.SHARE_CONTENT_URI, values);
+        }
+    }
+
+    private void initImageLoader() {
+        initBundleForLoader();
+        getLoaderManager().initLoader(Constants.IMAGE_LOADER_ID, mLoaderBundle, this);
+    }
+
+    private void restartImageLoader() {
+        initBundleForLoader();
+        getLoaderManager().restartLoader(Constants.IMAGE_LOADER_ID, mLoaderBundle, this);
+    }
+
+
+    private void initBundleForLoader() {
+        mLoaderBundle = new Bundle();
+        mLoaderBundle.putParcelable(Constants.LOADER_URI_KEY, mImageUri);
+    }
+
+    @Override
+    public Loader<Bitmap> onCreateLoader(int id, Bundle args) {
+        Loader<Bitmap> mLoader = null;
+
+        if (id == Constants.IMAGE_LOADER_ID) {
+            mLoader = new ImageLoader(getActivity(), args);
+        }
+        return mLoader;
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Bitmap> loader, Bitmap data) {
+        mIvSelectedImage.setImageBitmap(data);
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Bitmap> loader) {
+
+    }
 }

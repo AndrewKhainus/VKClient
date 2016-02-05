@@ -2,28 +2,21 @@ package com.radomar.vkclient.fragments;
 
 import android.app.Fragment;
 import android.app.LoaderManager;
-import android.content.Context;
 import android.content.Intent;
 import android.content.Loader;
-import android.content.SharedPreferences;
-import android.content.SharedPreferences.Editor;
-import android.database.ContentObserver;
 import android.database.Cursor;
-import android.net.Uri;
 import android.os.Bundle;
-import android.os.Handler;
 import android.support.annotation.Nullable;
+import android.support.design.widget.FloatingActionButton;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 
 
-import com.melnykov.fab.FloatingActionButton;
 import com.radomar.vkclient.R;
 import com.radomar.vkclient.adapters.CustomRecyclerAdapter;
 import com.radomar.vkclient.content_provider.NewsContentProvider;
@@ -43,20 +36,14 @@ public class VKFragment extends Fragment implements View.OnClickListener,
                                                     LoaderManager.LoaderCallbacks<Cursor>,
                                                     SwipeRefreshLayout.OnRefreshListener {
 
-//    TODO save in bundle: 1) mIsLoading
-
-    private SharedPreferences mSharedPref;
-
     private RecyclerView mRecyclerView;
     private CustomRecyclerAdapter mAdapter;
     private LinearLayoutManager mLayoutManager;
     private SwipeRefreshLayout mSwipeRefreshLayout;
 
-    private ContentObserver mContentObserver;
-
     private Button mLoginButton;
     private Button mRequestButton;
-    private FloatingActionButton fab;
+    private FloatingActionButton mFab;
 
     private boolean mIsLoading = false;
 
@@ -82,9 +69,7 @@ public class VKFragment extends Fragment implements View.OnClickListener,
 
         initAdapter();
         setListener();
-        fab.attachToRecyclerView(mRecyclerView);
 
-//  TODO make something with login button
         if (VKSdk.isLoggedIn()) {
             mLoginButton.setText(getString(R.string.sign_out));
         } else {
@@ -107,13 +92,11 @@ public class VKFragment extends Fragment implements View.OnClickListener,
     public void onResume() {
         super.onResume();
         initCursorLoader();
-        registerContentObserver();
     }
 
     @Override
     public void onStop() {
         super.onStop();
-        unregisterContentObserver();
     }
 
     @Override
@@ -127,7 +110,7 @@ public class VKFragment extends Fragment implements View.OnClickListener,
         mLoginButton = (Button) view.findViewById(R.id.btLogin_FK);
         mRequestButton = (Button) view.findViewById(R.id.btRequest_FK);
         mSwipeRefreshLayout = (SwipeRefreshLayout) view.findViewById(R.id.srRefresh_FK);
-        fab = (FloatingActionButton) view.findViewById(R.id.fab);
+        mFab = (FloatingActionButton) view.findViewById(R.id.fab_FK);
     }
 
     private void initRecyclerView(View view) {
@@ -145,7 +128,7 @@ public class VKFragment extends Fragment implements View.OnClickListener,
         mLoginButton.setOnClickListener(this);
         mRequestButton.setOnClickListener(this);
         mSwipeRefreshLayout.setOnRefreshListener(this);
-        fab.setOnClickListener(this);
+        mFab.setOnClickListener(this);
     }
 
     @Override
@@ -161,11 +144,11 @@ public class VKFragment extends Fragment implements View.OnClickListener,
                     mLoginButton.setText(getString(R.string.sign_in));
                 }
                 break;
+            case R.id.fab_FK:
+                new ShareDialog().show(getFragmentManager(), Constants.TAG_SHARE_DIALOG);
+                break;
             case R.id.btRequest_FK:
 
-                break;
-            case R.id.fab:
-                new ShareDialog().show(getFragmentManager(), Constants.TAG_SHARE_DIALOG);
                 break;
         }
     }
@@ -182,7 +165,6 @@ public class VKFragment extends Fragment implements View.OnClickListener,
 
     @Override
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
-        Log.d("sometag", "onLoadFinished");
         mAdapter.setCursor(data);
         mAdapter.notifyDataSetChanged();
         mIsLoading = false;
@@ -193,7 +175,7 @@ public class VKFragment extends Fragment implements View.OnClickListener,
     }
 
     private void initCursorLoader() {
-        getLoaderManager().initLoader(100, null, this);
+        getLoaderManager().initLoader(Constants.LOADER_ID, null, this);
     }
 
     private void addOnScrollListener(RecyclerView recyclerView) {
@@ -208,35 +190,15 @@ public class VKFragment extends Fragment implements View.OnClickListener,
 
                 if ((totalItemCount - visibleItemCount) <= firstVisibleItem && !mIsLoading) {
                     mIsLoading = true;
-                    SyncAdapter.anywaySyncImmediately();
+                    SyncAdapter.syncImmediately(Constants.DOWNLOAD_ANYWAY_PARAM, null, null, null, null);
                 }
             }
         });
     }
 
-    private void registerContentObserver() {
-        mContentObserver = new ContentObserver(new Handler()) {
-            @Override
-            public void onChange(boolean selfChange, Uri uri) {
-                super.onChange(selfChange, uri);
-//                TODO forceLoad should not be here. Sometimes crush.     http://developer.android.com/intl/ru/reference/android/content/AsyncTaskLoader.html
-                getLoaderManager().getLoader(100).forceLoad();
-            }
-        };
-        getActivity().getContentResolver().registerContentObserver(NewsContentProvider.NEWS_CONTENT_URI, true, mContentObserver);
-    }
-
-    private void unregisterContentObserver() {
-        getActivity().getContentResolver().unregisterContentObserver(mContentObserver);
-    }
-
     @Override
     public void onResult(VKAccessToken res) {
         SyncAdapter.initializeSyncAdapter(getActivity());
-        mSharedPref = getActivity().getSharedPreferences(Constants.PREFERENCES_NAME, Context.MODE_PRIVATE);
-        Editor ed = mSharedPref.edit();
-        ed.putString(Constants.OWNER_ID_KEY, res.userId);
-        ed.apply();
     }
 
     @Override
@@ -252,7 +214,7 @@ public class VKFragment extends Fragment implements View.OnClickListener,
             public void run() {
                 mSwipeRefreshLayout.setRefreshing(false);
                 if(mAdapter != null) {
-                    SyncAdapter.syncBySwipeToRefresh();
+                    SyncAdapter.syncImmediately(Constants.SWIPE_REFRESH_PARAM, null, null, null, null);
                 }
             }
         }, 1000);
