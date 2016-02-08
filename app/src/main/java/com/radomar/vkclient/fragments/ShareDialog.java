@@ -3,11 +3,12 @@ package com.radomar.vkclient.fragments;
 import android.Manifest;
 import android.app.Activity;
 import android.app.DialogFragment;
+import android.app.LoaderManager.LoaderCallbacks;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
-import android.content.pm.PackageManager;
 import android.content.Loader;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.location.Location;
 import android.net.ConnectivityManager;
@@ -15,8 +16,8 @@ import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
+import android.support.annotation.WorkerThread;
 import android.support.v4.app.ActivityCompat;
-import android.app.LoaderManager.LoaderCallbacks;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -41,11 +42,11 @@ import com.radomar.vkclient.sync_adapter.SyncAdapter;
  * Created by Radomar on 27.01.2016
  */
 public class ShareDialog extends DialogFragment implements View.OnClickListener,
-                                                           GoogleApiClient.ConnectionCallbacks,
-                                                           GoogleApiClient.OnConnectionFailedListener,
-                                                           LocationListener, LoaderCallbacks<Bitmap> {
+        GoogleApiClient.ConnectionCallbacks,
+        GoogleApiClient.OnConnectionFailedListener,
+        LocationListener, LoaderCallbacks<Bitmap> {
 
-    private static final int INTERVAL = 1000*10;
+    private static final int INTERVAL = 1000 * 10;
     private static final int FASTEST_INTERVAL = 1000;
 
     private Button mBtCancel;
@@ -81,7 +82,7 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.dialog_fragment, null);
+        View view = inflater.inflate(R.layout.dialog_fragment, null);//FIXME: Use lint hint
 
         findViews(view);
         setListeners();
@@ -133,6 +134,7 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
             mImageUri = data.getData();
             mTvSelectedImage.setText(mImageUri.toString());
 
+            //FIXME: use method ImageView.setImageUri() instead working with Bitmap manually
             restartImageLoader();
         }
     }
@@ -177,7 +179,7 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
                     shareContent();
                 } else {
                     if (!(mEtMessage.getText().toString().equals("") && mImageUri == null)) {
-                        writeToDb();
+                        writeToDb();//FIXME: this shouldn't be into the main thread
 
                         Intent intent = new Intent();
                         intent.putExtra(Constants.DIALOG_TAG, true);
@@ -220,6 +222,7 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
     public void onConnected(@Nullable Bundle bundle) {
         if (ActivityCompat.checkSelfPermission(getActivity(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
                 && ActivityCompat.checkSelfPermission(getActivity(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+            //FIXME: if you set targetSdk 23 -> handle runtime permissions
             return;
         }
         Location lastLocation = LocationServices.FusedLocationApi.getLastLocation(
@@ -269,6 +272,7 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
         return netInfo != null && netInfo.isConnectedOrConnecting();
     }
 
+    @WorkerThread
     private void writeToDb() {
         ContentValues values = new ContentValues();
         values.put(NewsContentProvider.SHARED_IMAGE_URL, mTvSelectedImage.getText().toString());

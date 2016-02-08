@@ -1,6 +1,7 @@
 package com.radomar.vkclient.adapters;
 
 import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.support.annotation.Nullable;
@@ -26,7 +27,7 @@ import java.util.Date;
  */
 public class CustomRecyclerAdapter extends RecyclerView.Adapter {
 
-    private Activity mActivity;
+    private Context mActivity;
     private Cursor mCursor;
 
     private static final int NEWS_VIEW = 1;
@@ -158,7 +159,7 @@ public class CustomRecyclerAdapter extends RecyclerView.Adapter {
 
             if (mLatitude != null && mLongitude != null) {
                 Log.d("sometag", "start map activity " + mLatitude + "  " + mLongitude);
-
+                //FIXME: use callback to fragment to notify about click
                 Intent i = new Intent(mActivity, GoogleMapActivity.class);
                 i.putExtra(Constants.KEY_LATITUDE, mLatitude)
                         .putExtra(Constants.KEY_LONGITUDE, mLongitude);

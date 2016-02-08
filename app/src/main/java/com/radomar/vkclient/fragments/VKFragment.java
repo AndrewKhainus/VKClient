@@ -6,7 +6,6 @@ import android.app.LoaderManager;
 import android.content.Intent;
 import android.content.Loader;
 import android.database.Cursor;
-import android.graphics.Color;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.design.widget.FloatingActionButton;
@@ -18,7 +17,6 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
-
 
 import com.radomar.vkclient.R;
 import com.radomar.vkclient.adapters.CustomRecyclerAdapter;
@@ -55,6 +53,7 @@ public class VKFragment extends Fragment implements View.OnClickListener,
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        //FIXME: Activity memory leak; you should init VKSdk inside Application class
         VKSdk.customInitialize(getActivity(), Constants.VK_API_KEY, String.valueOf(Constants.VK_API_KEY));
 
 
@@ -181,7 +180,7 @@ public class VKFragment extends Fragment implements View.OnClickListener,
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
         mAdapter.setCursor(data);
         mAdapter.notifyDataSetChanged();
-        mIsLoading = false;
+        mIsLoading = false; //FIXME: save this into onSaveInstanceState, otherwise this may cause duplicates after configuration change
     }
 
     @Override
@@ -204,6 +203,7 @@ public class VKFragment extends Fragment implements View.OnClickListener,
 
                 if ((totalItemCount - visibleItemCount) <= firstVisibleItem && !mIsLoading) {
                     mIsLoading = true;
+                    //FIXME: you should address your request only to loader
                     SyncAdapter.syncImmediately(Constants.DOWNLOAD_ANYWAY_PARAM, null, null, null, null);
                 }
             }

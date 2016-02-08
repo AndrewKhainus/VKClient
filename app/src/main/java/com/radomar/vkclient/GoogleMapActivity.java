@@ -44,7 +44,7 @@ public class GoogleMapActivity extends AppCompatActivity implements OnMapReadyCa
     @Override
     public void onMapReady(GoogleMap googleMap) {
 
-        if (googleMap == null) {
+        if (googleMap == null) {//FIXME: unnecessary check
             return;
         }
 

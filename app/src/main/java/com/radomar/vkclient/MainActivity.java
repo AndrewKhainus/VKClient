@@ -1,7 +1,7 @@
 package com.radomar.vkclient;
 
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 
 import com.radomar.vkclient.fragments.VKFragment;
 import com.radomar.vkclient.global.Constants;
@@ -13,7 +13,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-
+        // FIXME: you should set fragment only once; in other case default save-restore state behaviour won't work  
         startVKFragment();
     }
 

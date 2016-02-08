@@ -2,7 +2,6 @@ package com.radomar.vkclient.sync_adapter;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
-
 import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
@@ -23,8 +22,6 @@ import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
 import com.radomar.vkclient.R;
-import com.radomar.vkclient.utils.FileUtils;
-import com.radomar.vkclient.utils.RestClient;
 import com.radomar.vkclient.content_provider.NewsContentProvider;
 import com.radomar.vkclient.global.Constants;
 import com.radomar.vkclient.interfaces.APIService;
@@ -35,6 +32,8 @@ import com.radomar.vkclient.models.NewsModel;
 import com.radomar.vkclient.models.PhotoModel;
 import com.radomar.vkclient.models.SavePhoto;
 import com.radomar.vkclient.models.UploadServer;
+import com.radomar.vkclient.utils.FileUtils;
+import com.radomar.vkclient.utils.RestClient;
 import com.squareup.okhttp.MediaType;
 import com.squareup.okhttp.RequestBody;
 import com.vk.sdk.VKAccessToken;
@@ -66,6 +65,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
 
     public SyncAdapter(Context context, boolean autoInitialize) {
         super(context, autoInitialize);
+        //FIXME: you should init VKSdk inside Application class
         VKSdk.customInitialize(context, Constants.VK_API_KEY, String.valueOf(Constants.VK_API_KEY));
 
         mStartFrom = getStartFrom();
@@ -290,6 +290,8 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
     }
 
     private void shareOfflineMessages() {
+
+        //FIXME: shareOfflineMessages repeats data sharing
 
         Cursor cursor = getContext().getContentResolver().query(NewsContentProvider.SHARE_CONTENT_URI, null, null, null, null);
         if (cursor != null) {

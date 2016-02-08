@@ -20,7 +20,7 @@ public class CustomJsonDeserializer implements JsonDeserializer<Model> {
     @Override
     public Model deserialize(JsonElement json, Type typeOfT, JsonDeserializationContext context) throws JsonParseException {
         Model model = new Model();
-
+        //FIXME: hardcode
         JsonArray array = json.getAsJsonObject().getAsJsonObject("response").getAsJsonArray("items");
         for (int i = 0; i < array.size(); i++) {
             NewsModel newsModel = new NewsModel();
