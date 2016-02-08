@@ -15,6 +15,7 @@ import android.os.Bundle;
 import android.support.annotation.Nullable;
 import android.support.annotation.WorkerThread;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -36,6 +37,8 @@ import com.radomar.vkclient.loader.ImageLoader;
 import com.radomar.vkclient.sync_adapter.SyncAdapter;
 import com.radomar.vkclient.utils.ConnectionUtils;
 
+import java.io.IOException;
+
 /**
  * Created by Radomar on 27.01.2016
  */
@@ -46,6 +49,9 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
 
     private static final int INTERVAL = 1000 * 10;
     private static final int FASTEST_INTERVAL = 1000;
+
+    boolean mIsFineLocationAccepted;
+    boolean mIsCoarseLocationAccepted;
 
     private Button mBtCancel;
     private Button mBtShare;
@@ -218,11 +224,19 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
     public void onConnected(@Nullable Bundle bundle) {
         if (ActivityCompat.checkSelfPermission(getActivity(), Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED
                 && ActivityCompat.checkSelfPermission(getActivity(), Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-            //FIXME: if you set targetSdk 23 -> handle runtime permissions
+
+            ActivityCompat.requestPermissions(getActivity(),
+                    new String[]{Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION},
+                    Constants.PERMISSIONS_REQUEST_CODE);
             return;
         }
-        Location lastLocation = LocationServices.FusedLocationApi.getLastLocation(
-                mGoogleApiClient);
+
+        updateLocation();
+    }
+
+    private void updateLocation() throws SecurityException {
+        Location lastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
+
         if (lastLocation != null) {
             mLatitude = lastLocation.getLatitude();
             mLongitude = lastLocation.getLongitude();
@@ -313,5 +327,18 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
     @Override
     public void onLoaderReset(Loader<Bitmap> loader) {
 
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        Log.d("sometag", "onRequestPermissionsResult");
+        switch (requestCode) {
+            case Constants.PERMISSIONS_REQUEST_CODE:
+                if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
+                    updateLocation();
+                }
+
+                break;
+        }
     }
 }

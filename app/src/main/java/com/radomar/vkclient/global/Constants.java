@@ -15,6 +15,7 @@ public final class Constants {
     public static final int IMAGE_LOADER_ID = 101;
     public static final int COUNT = 10;
     public static final double VERSION = 5.44;
+    public static final int PERMISSIONS_REQUEST_CODE = 200;
 
     public static final String START_FROM = "start_from";
 
