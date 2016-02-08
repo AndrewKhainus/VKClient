@@ -65,8 +65,6 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
 
     public SyncAdapter(Context context, boolean autoInitialize) {
         super(context, autoInitialize);
-        //FIXME: you should init VKSdk inside Application class
-        VKSdk.customInitialize(context, Constants.VK_API_KEY, String.valueOf(Constants.VK_API_KEY));
 
         mStartFrom = getStartFrom();
     }

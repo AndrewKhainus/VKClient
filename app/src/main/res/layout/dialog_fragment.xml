@@ -54,13 +54,13 @@
             android:layout_weight="1" />
     </LinearLayout>
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/tvSelectedImage_DF"
-        android:layout_alignParentTop="true"
-        android:layout_toRightOf="@+id/ivImage_DF"
-        android:layout_toEndOf="@+id/ivImage_DF" />
+    <!--<TextView-->
+        <!--android:layout_width="wrap_content"-->
+        <!--android:layout_height="wrap_content"-->
+        <!--android:id="@+id/tvSelectedImage_DF"-->
+        <!--android:layout_alignParentTop="true"-->
+        <!--android:layout_toRightOf="@+id/ivImage_DF"-->
+        <!--android:layout_toEndOf="@+id/ivImage_DF" />-->
 
 
 </RelativeLayout>

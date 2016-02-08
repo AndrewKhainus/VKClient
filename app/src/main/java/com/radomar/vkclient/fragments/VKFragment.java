@@ -18,12 +18,16 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 
+import com.radomar.vkclient.GoogleMapActivity;
 import com.radomar.vkclient.R;
 import com.radomar.vkclient.adapters.CustomRecyclerAdapter;
 import com.radomar.vkclient.content_provider.NewsContentProvider;
 import com.radomar.vkclient.global.Constants;
+import com.radomar.vkclient.interfaces.OnItemClickCallback;
 import com.radomar.vkclient.loader.NewsCursorLoader;
 import com.radomar.vkclient.sync_adapter.SyncAdapter;
+import com.radomar.vkclient.utils.ConnectionUtils;
+import com.radomar.vkclient.utils.FileUtils;
 import com.vk.sdk.VKAccessToken;
 import com.vk.sdk.VKCallback;
 import com.vk.sdk.VKSdk;
@@ -35,7 +39,8 @@ import com.vk.sdk.api.VKError;
 public class VKFragment extends Fragment implements View.OnClickListener,
                                                     VKCallback<VKAccessToken>,
                                                     LoaderManager.LoaderCallbacks<Cursor>,
-                                                    SwipeRefreshLayout.OnRefreshListener {
+                                                    SwipeRefreshLayout.OnRefreshListener,
+                                                    OnItemClickCallback {
 
     private static final int DIALOG_REQUEST_CODE = 42;
 
@@ -53,9 +58,6 @@ public class VKFragment extends Fragment implements View.OnClickListener,
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        //FIXME: Activity memory leak; you should init VKSdk inside Application class
-        VKSdk.customInitialize(getActivity(), Constants.VK_API_KEY, String.valueOf(Constants.VK_API_KEY));
-
 
         SyncAdapter.initializeSyncAdapter(getActivity());
     }
@@ -84,6 +86,11 @@ public class VKFragment extends Fragment implements View.OnClickListener,
 
     @Override
     public void onViewCreated(View view, Bundle savedInstanceState) {
+        if (!VKSdk.isLoggedIn()) {
+            mAdapter.setProgressBarVisibility(false);
+        } else {
+            mAdapter.setProgressBarVisibility(true);
+        }
     }
 
     @Override
@@ -95,6 +102,20 @@ public class VKFragment extends Fragment implements View.OnClickListener,
     public void onResume() {
         super.onResume();
         initCursorLoader();
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putBoolean(Constants.LOADING_KEY, mIsLoading);
+    }
+
+    @Override
+    public void onViewStateRestored(Bundle savedInstanceState) {
+        super.onViewStateRestored(savedInstanceState);
+        if (savedInstanceState != null) {
+            mIsLoading = savedInstanceState.getBoolean(Constants.LOADING_KEY);
+        }
     }
 
     @Override
@@ -131,7 +152,7 @@ public class VKFragment extends Fragment implements View.OnClickListener,
     }
 
     private void initAdapter() {
-            mAdapter = new CustomRecyclerAdapter(getActivity(), null);
+            mAdapter = new CustomRecyclerAdapter(getActivity(), null, this);
             mRecyclerView.setAdapter(mAdapter);
     }
 
@@ -180,7 +201,7 @@ public class VKFragment extends Fragment implements View.OnClickListener,
     public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
         mAdapter.setCursor(data);
         mAdapter.notifyDataSetChanged();
-        mIsLoading = false; //FIXME: save this into onSaveInstanceState, otherwise this may cause duplicates after configuration change
+        mIsLoading = false;
     }
 
     @Override
@@ -213,6 +234,7 @@ public class VKFragment extends Fragment implements View.OnClickListener,
     @Override
     public void onResult(VKAccessToken res) {
         SyncAdapter.initializeSyncAdapter(getActivity());
+        mAdapter.setProgressBarVisibility(true);
     }
 
     @Override
@@ -235,8 +257,16 @@ public class VKFragment extends Fragment implements View.OnClickListener,
 
     private void updateUI(boolean isDataAdded) {
         if (isDataAdded) {
-//TODO change fab color
+        //TODO change fab color
         }
     }
 
+    @Override
+    public void OnItemClick(String latitude, String longitude) {
+        Intent i = new Intent(getActivity(), GoogleMapActivity.class);
+        i.putExtra(Constants.KEY_LATITUDE, latitude)
+                .putExtra(Constants.KEY_LONGITUDE, longitude);
+
+        startActivity(i);
+    }
 }

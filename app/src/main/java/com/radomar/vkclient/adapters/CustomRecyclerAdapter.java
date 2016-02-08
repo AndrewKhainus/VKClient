@@ -1,8 +1,6 @@
 package com.radomar.vkclient.adapters;
 
-import android.app.Activity;
 import android.content.Context;
-import android.content.Intent;
 import android.database.Cursor;
 import android.support.annotation.Nullable;
 import android.support.v7.widget.RecyclerView;
@@ -14,10 +12,9 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import com.radomar.vkclient.GoogleMapActivity;
 import com.radomar.vkclient.R;
 import com.radomar.vkclient.content_provider.NewsContentProvider;
-import com.radomar.vkclient.global.Constants;
+import com.radomar.vkclient.interfaces.OnItemClickCallback;
 import com.squareup.picasso.Picasso;
 
 import java.util.Date;
@@ -27,14 +24,19 @@ import java.util.Date;
  */
 public class CustomRecyclerAdapter extends RecyclerView.Adapter {
 
-    private Context mActivity;
+    private OnItemClickCallback mOnItemClickCallback;
+
+    private Context mContext;
     private Cursor mCursor;
 
     private static final int NEWS_VIEW = 1;
     private static final int PROGRESS_VIEW = 2;
 
-    public CustomRecyclerAdapter(Activity activity, @Nullable Cursor cursor) {
-        mActivity = activity;
+    private boolean isProgressBarVisible;
+
+    public CustomRecyclerAdapter(Context context, @Nullable Cursor cursor, OnItemClickCallback callback) {
+        mContext = context;
+        mOnItemClickCallback = callback;
         mCursor = cursor;
     }
 
@@ -43,10 +45,10 @@ public class CustomRecyclerAdapter extends RecyclerView.Adapter {
         View itemView;
         RecyclerView.ViewHolder vh;
         if (viewType == NEWS_VIEW) {
-            itemView = LayoutInflater.from(mActivity).inflate(R.layout.news_card_view, parent, false);
+            itemView = LayoutInflater.from(mContext).inflate(R.layout.news_card_view, parent, false);
             vh = new CustomViewHolder(itemView);
         } else {
-            itemView = LayoutInflater.from(mActivity).inflate(R.layout.progress_card_view, parent, false);
+            itemView = LayoutInflater.from(mContext).inflate(R.layout.progress_card_view, parent, false);
             vh = new ProgressViewHolder(itemView);
         }
         return vh;
@@ -56,6 +58,8 @@ public class CustomRecyclerAdapter extends RecyclerView.Adapter {
     public void onBindViewHolder(RecyclerView.ViewHolder holder, int position) {
         if (holder instanceof CustomViewHolder) {
             ((CustomViewHolder) holder).onBind(position);
+        } else {
+            ((ProgressViewHolder) holder).onBind();
         }
     }
 
@@ -79,6 +83,9 @@ public class CustomRecyclerAdapter extends RecyclerView.Adapter {
         this.mCursor = mCursor;
     }
 
+    public void setProgressBarVisibility(boolean isProgressBarVisible) {
+        this.isProgressBarVisible = isProgressBarVisible;
+    }
 
     /**
      View Holder
@@ -96,7 +103,6 @@ public class CustomRecyclerAdapter extends RecyclerView.Adapter {
 
         String mLatitude;
         String mLongitude;
-
 
         public CustomViewHolder(View itemView) {
             super(itemView);
@@ -117,16 +123,19 @@ public class CustomRecyclerAdapter extends RecyclerView.Adapter {
 //   Download image
             String url = mCursor.getString(mCursor.getColumnIndex(NewsContentProvider.IMAGE_URL));
             if (url != null) {
-                Picasso.with(mActivity)
+                Picasso.with(mContext)
                         .load(url)
                         .into(mNewsPhoto);
+                mNewsPhoto.setVisibility(View.VISIBLE);
+            } else {
+                mNewsPhoto.setVisibility(View.GONE);
             }
 //   user name and photo
             mAuthorName.setText(mCursor.getString(mCursor.getColumnIndex(NewsContentProvider.AUTHOR_NAME)));
 
             url = mCursor.getString(mCursor.getColumnIndex(NewsContentProvider.PHOTO_URL));
             if (url != null) {
-                Picasso.with(mActivity)
+                Picasso.with(mContext)
                         .load(url)
                         .into(mAuthorPhoto);
             }
@@ -158,13 +167,7 @@ public class CustomRecyclerAdapter extends RecyclerView.Adapter {
             Log.d("sometag", "onClick");
 
             if (mLatitude != null && mLongitude != null) {
-                Log.d("sometag", "start map activity " + mLatitude + "  " + mLongitude);
-                //FIXME: use callback to fragment to notify about click
-                Intent i = new Intent(mActivity, GoogleMapActivity.class);
-                i.putExtra(Constants.KEY_LATITUDE, mLatitude)
-                        .putExtra(Constants.KEY_LONGITUDE, mLongitude);
-
-                mActivity.startActivity(i);
+                mOnItemClickCallback.OnItemClick(mLatitude, mLongitude);
             }
         }
     }
@@ -181,6 +184,14 @@ public class CustomRecyclerAdapter extends RecyclerView.Adapter {
 
         private void findViews(View view) {
             mProgressBar = (ProgressBar) view.findViewById(R.id.pbProgress_PCV);
+        }
+
+        public void onBind() {
+            if (isProgressBarVisible) {
+                mProgressBar.setVisibility(View.VISIBLE);
+            } else {
+                mProgressBar.setVisibility(View.GONE);
+            }
         }
     }
 }

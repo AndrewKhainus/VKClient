@@ -19,7 +19,7 @@ public class NewsContentProvider extends ContentProvider {
 
     public static final String AUTHORITY = "com.radomar.vkclient.NewsProvider";
 
-    static final String DB_NAME = "mydb44";
+    static final String DB_NAME = "mydb45";
     static final int DB_VERSION = 1;
 
     static final String NEWS_TABLE = "news";

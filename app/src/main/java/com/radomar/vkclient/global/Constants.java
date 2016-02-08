@@ -47,4 +47,6 @@ public final class Constants {
     public static final String IMAGE_URI = "image_uri";
 
     public static final String ACTION_SHARE = "com.radomar.vkclient.share_again";
+
+    public static final String LOADING_KEY = "loading_key";
 }

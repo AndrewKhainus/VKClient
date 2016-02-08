@@ -5,14 +5,11 @@ import android.app.Activity;
 import android.app.DialogFragment;
 import android.app.LoaderManager.LoaderCallbacks;
 import android.content.ContentValues;
-import android.content.Context;
 import android.content.Intent;
 import android.content.Loader;
 import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.location.Location;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.net.Uri;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
@@ -37,6 +34,7 @@ import com.radomar.vkclient.content_provider.NewsContentProvider;
 import com.radomar.vkclient.global.Constants;
 import com.radomar.vkclient.loader.ImageLoader;
 import com.radomar.vkclient.sync_adapter.SyncAdapter;
+import com.radomar.vkclient.utils.ConnectionUtils;
 
 /**
  * Created by Radomar on 27.01.2016
@@ -56,7 +54,7 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
     private EditText mEtMessage;
     private ImageView mIvSelectedImage;
     private Uri mImageUri;
-    private TextView mTvSelectedImage;
+    private String mSelectedImage;
     private TextView mTvLocation;
 
     private Bundle mLoaderBundle;
@@ -82,7 +80,7 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
     @Nullable
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        View view = inflater.inflate(R.layout.dialog_fragment, null);//FIXME: Use lint hint
+        View view = inflater.inflate(R.layout.dialog_fragment, container, false);
 
         findViews(view);
         setListeners();
@@ -117,7 +115,7 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
         if (savedInstanceState != null) {
             mImageUri = savedInstanceState.getParcelable(Constants.KEY_URI);
             if (mImageUri != null) {
-                mTvSelectedImage.setText(mImageUri.toString());
+                mSelectedImage = mImageUri.toString();
             }
 
             mLatitude = savedInstanceState.getDouble(Constants.KEY_LAT);
@@ -132,8 +130,7 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == Constants.PICK_IMAGE && resultCode == Activity.RESULT_OK && data != null && data.getData() != null) {
             mImageUri = data.getData();
-            mTvSelectedImage.setText(mImageUri.toString());
-
+            mSelectedImage = mImageUri.toString();
             //FIXME: use method ImageView.setImageUri() instead working with Bitmap manually
             restartImageLoader();
         }
@@ -157,7 +154,6 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
         mBtShare = (Button) view.findViewById(R.id.btShare_DF);
         mEtMessage = (EditText) view.findViewById(R.id.etMessage_DF);
         mIvSelectedImage = (ImageView) view.findViewById(R.id.ivImage_DF);
-        mTvSelectedImage = (TextView) view.findViewById(R.id.tvSelectedImage_DF);
         mTvLocation = (TextView) view.findViewById(R.id.tvLocation_DF);
     }
 
@@ -175,11 +171,11 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
                 dismiss();
                 break;
             case R.id.btShare_DF:
-                if (isOnline()) {
+                if (ConnectionUtils.getInstance().isOnline(getActivity())) {
                     shareContent();
                 } else {
                     if (!(mEtMessage.getText().toString().equals("") && mImageUri == null)) {
-                        writeToDb();//FIXME: this shouldn't be into the main thread
+                        writeToDb(mEtMessage.getText().toString());
 
                         Intent intent = new Intent();
                         intent.putExtra(Constants.DIALOG_TAG, true);
@@ -266,21 +262,21 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
         mLongitude = location.getLongitude();
     }
 
-    private boolean isOnline() {
-        ConnectivityManager cm = (ConnectivityManager) getActivity().getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo netInfo = cm.getActiveNetworkInfo();
-        return netInfo != null && netInfo.isConnectedOrConnecting();
-    }
-
     @WorkerThread
-    private void writeToDb() {
-        ContentValues values = new ContentValues();
-        values.put(NewsContentProvider.SHARED_IMAGE_URL, mTvSelectedImage.getText().toString());
-        values.put(NewsContentProvider.SHARED_MESSAGE, mEtMessage.getText().toString());
-        values.put(NewsContentProvider.LATITUDE, mLat);
-        values.put(NewsContentProvider.LONGITUDE, mLong);
+    private void writeToDb(final String message) {
 
-        getActivity().getContentResolver().insert(NewsContentProvider.SHARE_CONTENT_URI, values);
+        new Thread() {
+            @Override
+            public void run() {
+                ContentValues values = new ContentValues();
+                values.put(NewsContentProvider.SHARED_IMAGE_URL, mSelectedImage);
+                values.put(NewsContentProvider.SHARED_MESSAGE, message);
+                values.put(NewsContentProvider.LATITUDE, mLat);
+                values.put(NewsContentProvider.LONGITUDE, mLong);
+
+                getActivity().getContentResolver().insert(NewsContentProvider.SHARE_CONTENT_URI, values);
+            }
+        }.start();
     }
 
     private void initImageLoader() {
