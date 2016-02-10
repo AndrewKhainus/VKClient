@@ -61,6 +61,8 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
 
     private String mStartFrom;
 
+    private boolean isRefreshing;
+
     private SharedPreferences mSharedPreferences;
 
     public SyncAdapter(Context context, boolean autoInitialize) {
@@ -80,10 +82,13 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
                 downloadMoreOldNews();
             }
             if (actionType.equals(Constants.SWIPE_REFRESH_PARAM)) {
-                downloadLatestNews();
+                if (!isRefreshing) {
+                    isRefreshing = true;
+                    downloadLatestNews();
+                }
             }
             if (actionType.equals(Constants.SHARE_DATA_PARAM)) {
-                Uri uri = null;
+                Uri uri;
                 try {
                     uri = Uri.parse(extras.getString(Constants.IMAGE_URI));
                 } catch (NullPointerException e) {
@@ -105,6 +110,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
         Model model = response.body();
         Log.d(TAG, response.raw().toString());
         if (response.code() == 200) {
+            isRefreshing = false;
             writeDataToDB(model);
         }
     }
@@ -215,7 +221,6 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
         for (NewsModel newsModel: data.newsList) {
             ContentValues values = new ContentValues();
             values.put(NewsContentProvider.NEWS_TEXT, newsModel.text);
-
             values.put(NewsContentProvider.PUBLISH_TIME, newsModel.date);
             values.put(NewsContentProvider.LIKE, newsModel.like);
             values.put(NewsContentProvider.SOURCE_ID, newsModel.sourceId);
@@ -224,8 +229,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
             values.put(NewsContentProvider.IMAGE_URL, newsModel.photoUrl);
             values.put(NewsContentProvider.LATITUDE, newsModel.latitude);
             values.put(NewsContentProvider.LONGITUDE, newsModel.longitude);
-            Log.d(TAG, "write latitude = " + newsModel.latitude);
-            Log.d(TAG, "write latitude = " + newsModel.longitude);
+
             getContext().getContentResolver().insert(NewsContentProvider.NEWS_CONTENT_URI, values);
         }
 
@@ -289,14 +293,11 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
     }
 
     private void shareOfflineMessages() {
-
-        //FIXME: shareOfflineMessages repeats data sharing
-
         Cursor cursor = getContext().getContentResolver().query(NewsContentProvider.SHARE_CONTENT_URI, null, null, null, null);
         if (cursor != null) {
             if (cursor.moveToFirst()) {
                 do {
-                    Uri uri = null;
+                    Uri uri;
                     try {
                         uri = Uri.parse(cursor.getString(cursor.getColumnIndex(NewsContentProvider.SHARED_IMAGE_URL)));
                     } catch (NullPointerException e) {
