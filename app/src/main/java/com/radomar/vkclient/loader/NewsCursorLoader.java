@@ -2,10 +2,8 @@ package com.radomar.vkclient.loader;
 
 import android.content.Context;
 import android.content.CursorLoader;
-import android.database.ContentObserver;
 import android.database.Cursor;
 import android.net.Uri;
-import android.os.Handler;
 import android.util.Log;
 
 import com.radomar.vkclient.content_provider.NewsContentProvider;

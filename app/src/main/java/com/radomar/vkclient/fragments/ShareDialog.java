@@ -7,6 +7,7 @@ import android.app.LoaderManager.LoaderCallbacks;
 import android.content.Intent;
 import android.content.Loader;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
@@ -47,7 +48,7 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
                                                             ConnectionCallbacks,
                                                             OnConnectionFailedListener,
                                                             LocationListener,
-                                                            LoaderCallbacks<Void>{
+                                                            LoaderCallbacks<Cursor>{
 
     private static final int INTERVAL = 1000 * 10;
     private static final int FASTEST_INTERVAL = 1000;
@@ -285,7 +286,7 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
     }
 
     @Override
-    public Loader<Void> onCreateLoader(int id, Bundle args) {
+    public Loader<Cursor> onCreateLoader(int id, Bundle args) {
         Bundle bundle = new Bundle();
         bundle.putString(Constants.BUNDLE_KEY_URI, mSelectedImage);
         bundle.putString(Constants.BUNDLE_KEY_MESSAGE, mEtMessage.getText().toString());
@@ -295,10 +296,13 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
     }
 
     @Override
-    public void onLoadFinished(Loader<Void> loader, Void data) {
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+
     }
 
     @Override
-    public void onLoaderReset(Loader<Void> loader) {
+    public void onLoaderReset(Loader<Cursor> loader) {
+
     }
+
 }

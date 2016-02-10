@@ -88,6 +88,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
                     uri = Uri.parse(extras.getString(Constants.IMAGE_URI));
                 } catch (NullPointerException e) {
                     e.printStackTrace();
+                    uri = null;
                 }
                 shareData(extras.getString(Constants.MESSAGE),
                         uri,

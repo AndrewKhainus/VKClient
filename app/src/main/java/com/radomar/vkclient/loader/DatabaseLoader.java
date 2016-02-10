@@ -1,8 +1,9 @@
 package com.radomar.vkclient.loader;
 
-import android.content.AsyncTaskLoader;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.CursorLoader;
+import android.database.Cursor;
 import android.os.Bundle;
 
 import com.radomar.vkclient.content_provider.NewsContentProvider;
@@ -11,7 +12,7 @@ import com.radomar.vkclient.global.Constants;
 /**
  * Created by Radomar on 09.02.2016
  */
-public class DatabaseLoader extends AsyncTaskLoader<Void> {
+public class DatabaseLoader extends CursorLoader {
 
     private String mSelectedImage;
     private String mMessage;
@@ -27,7 +28,7 @@ public class DatabaseLoader extends AsyncTaskLoader<Void> {
     }
 
     @Override
-    public Void loadInBackground() {
+    public Cursor loadInBackground() {
         ContentValues values = new ContentValues();
         values.put(NewsContentProvider.SHARED_IMAGE_URL, mSelectedImage);
         values.put(NewsContentProvider.SHARED_MESSAGE, mMessage);
