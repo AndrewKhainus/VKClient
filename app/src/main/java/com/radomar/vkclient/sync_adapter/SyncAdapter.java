@@ -61,7 +61,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
 
     private String mStartFrom;
 
-    private boolean isRefreshing;
+    private boolean isRefreshInProgress;
 
     private SharedPreferences mSharedPreferences;
 
@@ -82,8 +82,8 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
                 downloadMoreOldNews();
             }
             if (actionType.equals(Constants.SWIPE_REFRESH_PARAM)) {
-                if (!isRefreshing) {
-                    isRefreshing = true;
+                if (!isRefreshInProgress) {
+                    isRefreshInProgress = true;
                     downloadLatestNews();
                 }
             }
@@ -110,7 +110,7 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
         Model model = response.body();
         Log.d(TAG, response.raw().toString());
         if (response.code() == 200) {
-            isRefreshing = false;
+            isRefreshInProgress = false;
             writeDataToDB(model);
         }
     }
