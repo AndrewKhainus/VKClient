@@ -4,5 +4,6 @@
     <color name="colorPrimaryDark">#303F9F</color>
     <color name="colorAccent">#FF4081</color>
 
-    <color name="fab_menu_normal">#ffea3e7a</color>
+    <color name="fab_normal_state">#ffea3e7a</color>
+    <color name="fab_post_present">#00d1fd</color>
 </resources>

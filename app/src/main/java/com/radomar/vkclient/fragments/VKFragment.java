@@ -8,7 +8,6 @@ import android.content.Loader;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.support.annotation.Nullable;
-import android.support.design.widget.FloatingActionButton;
 import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
@@ -22,12 +21,11 @@ import com.radomar.vkclient.GoogleMapActivity;
 import com.radomar.vkclient.R;
 import com.radomar.vkclient.adapters.CustomRecyclerAdapter;
 import com.radomar.vkclient.content_provider.NewsContentProvider;
+import com.radomar.vkclient.custom_view.MyFab;
 import com.radomar.vkclient.global.Constants;
 import com.radomar.vkclient.interfaces.OnItemClickCallback;
 import com.radomar.vkclient.loader.NewsCursorLoader;
 import com.radomar.vkclient.sync_adapter.SyncAdapter;
-import com.radomar.vkclient.utils.ConnectionUtils;
-import com.radomar.vkclient.utils.FileUtils;
 import com.vk.sdk.VKAccessToken;
 import com.vk.sdk.VKCallback;
 import com.vk.sdk.VKSdk;
@@ -51,9 +49,10 @@ public class VKFragment extends Fragment implements View.OnClickListener,
 
     private Button mLoginButton;
     private Button mRequestButton;
-    private FloatingActionButton mFab;
+    private MyFab mFab;
 
     private boolean mIsLoading = false;
+    private boolean mIsPostPresent = false;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -108,6 +107,7 @@ public class VKFragment extends Fragment implements View.OnClickListener,
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
         outState.putBoolean(Constants.LOADING_KEY, mIsLoading);
+        outState.putBoolean(Constants.POST_PRESENT_KEY, mIsPostPresent);
     }
 
     @Override
@@ -115,6 +115,8 @@ public class VKFragment extends Fragment implements View.OnClickListener,
         super.onViewStateRestored(savedInstanceState);
         if (savedInstanceState != null) {
             mIsLoading = savedInstanceState.getBoolean(Constants.LOADING_KEY);
+            mIsPostPresent = savedInstanceState.getBoolean(Constants.POST_PRESENT_KEY);
+            mFab.setIsPostPresent(mIsPostPresent);
         }
     }
 
@@ -142,7 +144,7 @@ public class VKFragment extends Fragment implements View.OnClickListener,
         mLoginButton = (Button) view.findViewById(R.id.btLogin_FK);
         mRequestButton = (Button) view.findViewById(R.id.btRequest_FK);
         mSwipeRefreshLayout = (SwipeRefreshLayout) view.findViewById(R.id.srRefresh_FK);
-        mFab = (FloatingActionButton) view.findViewById(R.id.fab_FK);
+        mFab = (MyFab) view.findViewById(R.id.fab_FK);
     }
 
     private void initRecyclerView(View view) {
@@ -224,7 +226,6 @@ public class VKFragment extends Fragment implements View.OnClickListener,
 
                 if ((totalItemCount - visibleItemCount) <= firstVisibleItem && !mIsLoading) {
                     mIsLoading = true;
-                    //FIXME: you should address your request only to loader
                     SyncAdapter.syncImmediately(Constants.DOWNLOAD_ANYWAY_PARAM, null, null, null, null);
                 }
             }
@@ -257,7 +258,8 @@ public class VKFragment extends Fragment implements View.OnClickListener,
 
     private void updateUI(boolean isDataAdded) {
         if (isDataAdded) {
-        //TODO change fab color
+            mIsPostPresent = true;
+            mFab.setIsPostPresent(true);
         }
     }
 

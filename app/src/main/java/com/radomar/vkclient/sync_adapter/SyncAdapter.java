@@ -295,8 +295,10 @@ public class SyncAdapter extends AbstractThreadedSyncAdapter implements Callback
         if (cursor != null) {
             if (cursor.moveToFirst()) {
                 do {
-                    Uri uri = Uri.parse(cursor.getString(cursor.getColumnIndex(NewsContentProvider.SHARED_IMAGE_URL)));
-                    if (uri.toString().equals("")) {
+                    Uri uri = null;
+                    try {
+                        uri = Uri.parse(cursor.getString(cursor.getColumnIndex(NewsContentProvider.SHARED_IMAGE_URL)));
+                    } catch (NullPointerException e) {
                         uri = null;
                     }
 

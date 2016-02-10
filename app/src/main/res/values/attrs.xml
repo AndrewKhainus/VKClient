@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="FabState">
+        <attr name="state_post_present" format="boolean"/>
+    </declare-styleable>
+
+</resources>

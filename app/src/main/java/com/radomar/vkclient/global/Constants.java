@@ -12,7 +12,7 @@ public final class Constants {
     public static final int PICK_IMAGE = 100500;
     public static final int VK_API_KEY = 5225166;
     public static final int LOADER_ID = 100;
-    public static final int IMAGE_LOADER_ID = 101;
+    public static final int DATABASE_LOADER_ID = 101;
     public static final int COUNT = 10;
     public static final double VERSION = 5.44;
     public static final int PERMISSIONS_REQUEST_CODE = 200;
@@ -50,4 +50,10 @@ public final class Constants {
     public static final String ACTION_SHARE = "com.radomar.vkclient.share_again";
 
     public static final String LOADING_KEY = "loading_key";
+    public static final String POST_PRESENT_KEY = "post_present_key";
+
+    public static final String BUNDLE_KEY_URI = "bundle_key_uri";
+    public static final String BUNDLE_KEY_MESSAGE = "bundle_key_message";
+    public static final String BUNDLE_KEY_LAT = "bundle_key_lat";
+    public static final String BUNDLE_KEY_LONG = "bundle_key_long";
 }

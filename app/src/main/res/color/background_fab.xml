@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<selector xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:custom="http://schemas.android.com/apk/res-auto">
+
+    <item custom:state_post_present="true" android:color="@color/fab_post_present" />
+
+    <item android:color="@color/fab_normal_state"/>
+
+</selector>

@@ -4,18 +4,17 @@ import android.Manifest;
 import android.app.Activity;
 import android.app.DialogFragment;
 import android.app.LoaderManager.LoaderCallbacks;
-import android.content.ContentValues;
 import android.content.Intent;
 import android.content.Loader;
 import android.content.pm.PackageManager;
-import android.graphics.Bitmap;
 import android.location.Location;
 import android.net.Uri;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
+import android.support.annotation.RequiresPermission;
 import android.support.annotation.WorkerThread;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.content.ContextCompat;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -25,33 +24,33 @@ import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+
+import com.bumptech.glide.Glide;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
+import com.google.android.gms.common.api.GoogleApiClient.ConnectionCallbacks;
+import com.google.android.gms.common.api.GoogleApiClient.OnConnectionFailedListener;
 import com.google.android.gms.location.LocationListener;
 import com.google.android.gms.location.LocationRequest;
 import com.google.android.gms.location.LocationServices;
 import com.radomar.vkclient.R;
-import com.radomar.vkclient.content_provider.NewsContentProvider;
 import com.radomar.vkclient.global.Constants;
-import com.radomar.vkclient.loader.ImageLoader;
+import com.radomar.vkclient.loader.DatabaseLoader;
 import com.radomar.vkclient.sync_adapter.SyncAdapter;
 import com.radomar.vkclient.utils.ConnectionUtils;
-
-import java.io.IOException;
+import com.radomar.vkclient.utils.FileUtils;
 
 /**
  * Created by Radomar on 27.01.2016
  */
 public class ShareDialog extends DialogFragment implements View.OnClickListener,
-        GoogleApiClient.ConnectionCallbacks,
-        GoogleApiClient.OnConnectionFailedListener,
-        LocationListener, LoaderCallbacks<Bitmap> {
+                                                            ConnectionCallbacks,
+                                                            OnConnectionFailedListener,
+                                                            LocationListener,
+                                                            LoaderCallbacks<Void>{
 
     private static final int INTERVAL = 1000 * 10;
     private static final int FASTEST_INTERVAL = 1000;
-
-    boolean mIsFineLocationAccepted;
-    boolean mIsCoarseLocationAccepted;
 
     private Button mBtCancel;
     private Button mBtShare;
@@ -62,8 +61,6 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
     private Uri mImageUri;
     private String mSelectedImage;
     private TextView mTvLocation;
-
-    private Bundle mLoaderBundle;
 
     private double mLatitude;
     private double mLongitude;
@@ -92,12 +89,6 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
         setListeners();
 
         return view;
-    }
-
-    @Override
-    public void onViewCreated(View view, Bundle savedInstanceState) {
-        super.onViewCreated(view, savedInstanceState);
-        initImageLoader();
     }
 
     @Override
@@ -130,15 +121,15 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
         }
     }
 
-
     @Override
     public void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == Constants.PICK_IMAGE && resultCode == Activity.RESULT_OK && data != null && data.getData() != null) {
             mImageUri = data.getData();
             mSelectedImage = mImageUri.toString();
-            //FIXME: use method ImageView.setImageUri() instead working with Bitmap manually
-            restartImageLoader();
+            Glide.with(getActivity()).
+                    load(FileUtils.getInstance().getRealPathFromURI(getActivity(), mImageUri)).
+                    into(mIvSelectedImage);
         }
     }
 
@@ -181,7 +172,7 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
                     shareContent();
                 } else {
                     if (!(mEtMessage.getText().toString().equals("") && mImageUri == null)) {
-                        writeToDb(mEtMessage.getText().toString());
+                        initLoader();
 
                         Intent intent = new Intent();
                         intent.putExtra(Constants.DIALOG_TAG, true);
@@ -214,7 +205,6 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
                     mImageUri,
                     mLat,
                     mLong);
-
         } else {
             Log.d("sometag", "no action");
         }
@@ -234,7 +224,9 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
         updateLocation();
     }
 
-    private void updateLocation() throws SecurityException {
+    @SuppressWarnings("ResourceType")
+    @RequiresPermission(anyOf = {Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION})
+    private void updateLocation() {
         Location lastLocation = LocationServices.FusedLocationApi.getLastLocation(mGoogleApiClient);
 
         if (lastLocation != null) {
@@ -276,69 +268,37 @@ public class ShareDialog extends DialogFragment implements View.OnClickListener,
         mLongitude = location.getLongitude();
     }
 
-    @WorkerThread
-    private void writeToDb(final String message) {
-
-        new Thread() {
-            @Override
-            public void run() {
-                ContentValues values = new ContentValues();
-                values.put(NewsContentProvider.SHARED_IMAGE_URL, mSelectedImage);
-                values.put(NewsContentProvider.SHARED_MESSAGE, message);
-                values.put(NewsContentProvider.LATITUDE, mLat);
-                values.put(NewsContentProvider.LONGITUDE, mLong);
-
-                getActivity().getContentResolver().insert(NewsContentProvider.SHARE_CONTENT_URI, values);
-            }
-        }.start();
-    }
-
-    private void initImageLoader() {
-        initBundleForLoader();
-        getLoaderManager().initLoader(Constants.IMAGE_LOADER_ID, mLoaderBundle, this);
-    }
-
-    private void restartImageLoader() {
-        initBundleForLoader();
-        getLoaderManager().restartLoader(Constants.IMAGE_LOADER_ID, mLoaderBundle, this);
-    }
-
-
-    private void initBundleForLoader() {
-        mLoaderBundle = new Bundle();
-        mLoaderBundle.putParcelable(Constants.LOADER_URI_KEY, mImageUri);
+    private void initLoader() {
+        getLoaderManager().initLoader(Constants.DATABASE_LOADER_ID, null, this);
     }
 
     @Override
-    public Loader<Bitmap> onCreateLoader(int id, Bundle args) {
-        Loader<Bitmap> mLoader = null;
-
-        if (id == Constants.IMAGE_LOADER_ID) {
-            mLoader = new ImageLoader(getActivity(), args);
-        }
-        return mLoader;
-    }
-
-    @Override
-    public void onLoadFinished(Loader<Bitmap> loader, Bitmap data) {
-        mIvSelectedImage.setImageBitmap(data);
-    }
-
-    @Override
-    public void onLoaderReset(Loader<Bitmap> loader) {
-
-    }
-
-    @Override
-    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         Log.d("sometag", "onRequestPermissionsResult");
         switch (requestCode) {
             case Constants.PERMISSIONS_REQUEST_CODE:
                 if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED && grantResults[1] == PackageManager.PERMISSION_GRANTED) {
                     updateLocation();
                 }
-
                 break;
         }
+    }
+
+    @Override
+    public Loader<Void> onCreateLoader(int id, Bundle args) {
+        Bundle bundle = new Bundle();
+        bundle.putString(Constants.BUNDLE_KEY_URI, mSelectedImage);
+        bundle.putString(Constants.BUNDLE_KEY_MESSAGE, mEtMessage.getText().toString());
+        bundle.putString(Constants.BUNDLE_KEY_LAT, mLat);
+        bundle.putString(Constants.BUNDLE_KEY_LONG, mLong);
+        return new DatabaseLoader(getActivity(), bundle);
+    }
+
+    @Override
+    public void onLoadFinished(Loader<Void> loader, Void data) {
+    }
+
+    @Override
+    public void onLoaderReset(Loader<Void> loader) {
     }
 }

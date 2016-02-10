@@ -12,10 +12,11 @@ import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
+import com.bumptech.glide.Glide;
 import com.radomar.vkclient.R;
 import com.radomar.vkclient.content_provider.NewsContentProvider;
 import com.radomar.vkclient.interfaces.OnItemClickCallback;
-import com.squareup.picasso.Picasso;
+//import com.squareup.picasso.Picasso;
 
 import java.util.Date;
 
@@ -123,9 +124,7 @@ public class CustomRecyclerAdapter extends RecyclerView.Adapter {
 //   Download image
             String url = mCursor.getString(mCursor.getColumnIndex(NewsContentProvider.IMAGE_URL));
             if (url != null) {
-                Picasso.with(mContext)
-                        .load(url)
-                        .into(mNewsPhoto);
+                Glide.with(mContext).load(url).into(mNewsPhoto);
                 mNewsPhoto.setVisibility(View.VISIBLE);
             } else {
                 mNewsPhoto.setVisibility(View.GONE);
@@ -135,9 +134,7 @@ public class CustomRecyclerAdapter extends RecyclerView.Adapter {
 
             url = mCursor.getString(mCursor.getColumnIndex(NewsContentProvider.PHOTO_URL));
             if (url != null) {
-                Picasso.with(mContext)
-                        .load(url)
-                        .into(mAuthorPhoto);
+                Glide.with(mContext).load(url).into(mAuthorPhoto);
             }
 //  Map
             mLatitude =  mCursor.getString(mCursor.getColumnIndex(NewsContentProvider.LATITUDE));
